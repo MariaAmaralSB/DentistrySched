@@ -1,0 +1,71 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\dudaa\\Desktop\\rep\\DentistrySched\\src\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{D4810CD3-578A-9EF7-CA6E-625BF06D9C23}|DentistrySched.API\\DentistrySched.API.csproj|c:\\users\\dudaa\\desktop\\rep\\dentistrysched\\src\\dentistrysched.api\\controllers\\admincontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{D4810CD3-578A-9EF7-CA6E-625BF06D9C23}|DentistrySched.API\\DentistrySched.API.csproj|solutionrelative:dentistrysched.api\\controllers\\admincontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{D4810CD3-578A-9EF7-CA6E-625BF06D9C23}|DentistrySched.API\\DentistrySched.API.csproj|c:\\users\\dudaa\\desktop\\rep\\dentistrysched\\src\\dentistrysched.api\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{D4810CD3-578A-9EF7-CA6E-625BF06D9C23}|DentistrySched.API\\DentistrySched.API.csproj|solutionrelative:dentistrysched.api\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{B55608A2-1E96-956C-9A9D-871E218988DE}|DentistrySched.Domain\\DentistrySched.Domain.csproj|c:\\users\\dudaa\\desktop\\rep\\dentistrysched\\src\\dentistrysched.domain\\entities.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{B55608A2-1E96-956C-9A9D-871E218988DE}|DentistrySched.Domain\\DentistrySched.Domain.csproj|solutionrelative:dentistrysched.domain\\entities.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "AdminController.cs",
+              "DocumentMoniker": "C:\\Users\\dudaa\\Desktop\\rep\\DentistrySched\\src\\DentistrySched.API\\Controllers\\AdminController.cs",
+              "RelativeDocumentMoniker": "DentistrySched.API\\Controllers\\AdminController.cs",
+              "ToolTip": "C:\\Users\\dudaa\\Desktop\\rep\\DentistrySched\\src\\DentistrySched.API\\Controllers\\AdminController.cs",
+              "RelativeToolTip": "DentistrySched.API\\Controllers\\AdminController.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA4AAABKAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-09-29T02:08:19.475Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "appsettings.json",
+              "DocumentMoniker": "C:\\Users\\dudaa\\Desktop\\rep\\DentistrySched\\src\\DentistrySched.API\\appsettings.json",
+              "RelativeDocumentMoniker": "DentistrySched.API\\appsettings.json",
+              "ToolTip": "C:\\Users\\dudaa\\Desktop\\rep\\DentistrySched\\src\\DentistrySched.API\\appsettings.json",
+              "RelativeToolTip": "DentistrySched.API\\appsettings.json",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAwAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2025-09-29T01:23:29.631Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "Entities.cs",
+              "DocumentMoniker": "C:\\Users\\dudaa\\Desktop\\rep\\DentistrySched\\src\\DentistrySched.Domain\\Entities.cs",
+              "RelativeDocumentMoniker": "DentistrySched.Domain\\Entities.cs",
+              "ToolTip": "C:\\Users\\dudaa\\Desktop\\rep\\DentistrySched\\src\\DentistrySched.Domain\\Entities.cs",
+              "RelativeToolTip": "DentistrySched.Domain\\Entities.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABEAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-09-29T01:10:50.604Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

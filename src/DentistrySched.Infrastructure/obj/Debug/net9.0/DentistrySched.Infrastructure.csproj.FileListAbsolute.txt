@@ -1,0 +1,17 @@
+C:\Users\dudaa\Desktop\rep\DentistrySched\src\DentistrySched.Infrastructure\obj\Debug\net9.0\DentistrySched.Infrastructure.csproj.AssemblyReference.cache
+C:\Users\dudaa\Desktop\rep\DentistrySched\src\DentistrySched.Infrastructure\obj\Debug\net9.0\DentistrySched.Infrastructure.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\dudaa\Desktop\rep\DentistrySched\src\DentistrySched.Infrastructure\obj\Debug\net9.0\DentistrySched.Infrastructure.AssemblyInfoInputs.cache
+C:\Users\dudaa\Desktop\rep\DentistrySched\src\DentistrySched.Infrastructure\obj\Debug\net9.0\DentistrySched.Infrastructure.AssemblyInfo.cs
+C:\Users\dudaa\Desktop\rep\DentistrySched\src\DentistrySched.Infrastructure\obj\Debug\net9.0\DentistrySched.Infrastructure.csproj.CoreCompileInputs.cache
+C:\Users\dudaa\Desktop\rep\DentistrySched\src\DentistrySched.Infrastructure\bin\Debug\net9.0\DentistrySched.Infrastructure.deps.json
+C:\Users\dudaa\Desktop\rep\DentistrySched\src\DentistrySched.Infrastructure\bin\Debug\net9.0\DentistrySched.Infrastructure.runtimeconfig.json
+C:\Users\dudaa\Desktop\rep\DentistrySched\src\DentistrySched.Infrastructure\bin\Debug\net9.0\DentistrySched.Infrastructure.dll
+C:\Users\dudaa\Desktop\rep\DentistrySched\src\DentistrySched.Infrastructure\bin\Debug\net9.0\DentistrySched.Infrastructure.pdb
+C:\Users\dudaa\Desktop\rep\DentistrySched\src\DentistrySched.Infrastructure\bin\Debug\net9.0\DentistrySched.Domain.dll
+C:\Users\dudaa\Desktop\rep\DentistrySched\src\DentistrySched.Infrastructure\bin\Debug\net9.0\DentistrySched.Domain.pdb
+C:\Users\dudaa\Desktop\rep\DentistrySched\src\DentistrySched.Infrastructure\obj\Debug\net9.0\Dentistr.2CD18FF4.Up2Date
+C:\Users\dudaa\Desktop\rep\DentistrySched\src\DentistrySched.Infrastructure\obj\Debug\net9.0\DentistrySched.Infrastructure.dll
+C:\Users\dudaa\Desktop\rep\DentistrySched\src\DentistrySched.Infrastructure\obj\Debug\net9.0\refint\DentistrySched.Infrastructure.dll
+C:\Users\dudaa\Desktop\rep\DentistrySched\src\DentistrySched.Infrastructure\obj\Debug\net9.0\DentistrySched.Infrastructure.pdb
+C:\Users\dudaa\Desktop\rep\DentistrySched\src\DentistrySched.Infrastructure\obj\Debug\net9.0\DentistrySched.Infrastructure.genruntimeconfig.cache
+C:\Users\dudaa\Desktop\rep\DentistrySched\src\DentistrySched.Infrastructure\obj\Debug\net9.0\ref\DentistrySched.Infrastructure.dll

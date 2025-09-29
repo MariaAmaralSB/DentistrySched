@@ -1,0 +1,17 @@
+C:\Users\dudaa\Desktop\rep\DentistrySched\src\DentistrySched.Application\obj\Debug\net9.0\DentistrySched.Application.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\dudaa\Desktop\rep\DentistrySched\src\DentistrySched.Application\obj\Debug\net9.0\DentistrySched.Application.AssemblyInfoInputs.cache
+C:\Users\dudaa\Desktop\rep\DentistrySched\src\DentistrySched.Application\obj\Debug\net9.0\DentistrySched.Application.AssemblyInfo.cs
+C:\Users\dudaa\Desktop\rep\DentistrySched\src\DentistrySched.Application\obj\Debug\net9.0\DentistrySched.Application.csproj.CoreCompileInputs.cache
+C:\Users\dudaa\Desktop\rep\DentistrySched\src\DentistrySched.Application\obj\Debug\net9.0\DentistrySched.Application.csproj.AssemblyReference.cache
+C:\Users\dudaa\Desktop\rep\DentistrySched\src\DentistrySched.Application\bin\Debug\net9.0\DentistrySched.Application.deps.json
+C:\Users\dudaa\Desktop\rep\DentistrySched\src\DentistrySched.Application\bin\Debug\net9.0\DentistrySched.Application.dll
+C:\Users\dudaa\Desktop\rep\DentistrySched\src\DentistrySched.Application\bin\Debug\net9.0\DentistrySched.Application.pdb
+C:\Users\dudaa\Desktop\rep\DentistrySched\src\DentistrySched.Application\bin\Debug\net9.0\DentistrySched.Domain.dll
+C:\Users\dudaa\Desktop\rep\DentistrySched\src\DentistrySched.Application\bin\Debug\net9.0\DentistrySched.Infrastructure.dll
+C:\Users\dudaa\Desktop\rep\DentistrySched\src\DentistrySched.Application\bin\Debug\net9.0\DentistrySched.Infrastructure.pdb
+C:\Users\dudaa\Desktop\rep\DentistrySched\src\DentistrySched.Application\bin\Debug\net9.0\DentistrySched.Domain.pdb
+C:\Users\dudaa\Desktop\rep\DentistrySched\src\DentistrySched.Application\obj\Debug\net9.0\Dentistr.0F352A0C.Up2Date
+C:\Users\dudaa\Desktop\rep\DentistrySched\src\DentistrySched.Application\obj\Debug\net9.0\DentistrySched.Application.dll
+C:\Users\dudaa\Desktop\rep\DentistrySched\src\DentistrySched.Application\obj\Debug\net9.0\refint\DentistrySched.Application.dll
+C:\Users\dudaa\Desktop\rep\DentistrySched\src\DentistrySched.Application\obj\Debug\net9.0\DentistrySched.Application.pdb
+C:\Users\dudaa\Desktop\rep\DentistrySched\src\DentistrySched.Application\obj\Debug\net9.0\ref\DentistrySched.Application.dll
