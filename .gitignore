@@ -1,0 +1,63 @@
+# =========================
+# .NET / C# 
+# =========================
+bin/
+obj/
+*.exe
+*.dll
+*.pdb
+*.cache
+*.log
+*.user
+*.suo
+*.userosscache
+*.userprefs
+*.dbmdl
+*.bak
+*.ldf
+*.ndf
+
+# Visual Studio
+.vs/
+
+# ASP.NET scaffolding
+ScaffoldingReadMe.txt
+
+# =========================
+# Entity Framework / Migrations
+# =========================
+Migrations/obj/
+*.Designer.cs
+
+# =========================
+# SQLite / Local DB
+# =========================
+*.db
+*.db-shm
+*.db-wal
+
+# =========================
+# Node / React
+# =========================
+node_modules/
+dist/
+build/
+.vite/
+*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# =========================
+# VSCode / IDEs
+# =========================
+.vscode/
+.idea/
+*.sln.iml
+
+# =========================
+# OS
+# =========================
+.DS_Store
+Thumbs.db
