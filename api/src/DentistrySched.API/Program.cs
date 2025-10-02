@@ -2,6 +2,7 @@ using DentistrySched.API;
 using DentistrySched.API.Services;
 using DentistrySched.Application.Interface;
 using DentistrySched.Application.Services;
+using DentistrySched.Domain.Entities;
 using DentistrySched.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 
@@ -34,11 +35,25 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-    await db.Database.MigrateAsync();
-
-    if (app.Environment.IsDevelopment())
+    try
     {
-        await SeedDev.RunAsync(db);
+        await db.Database.MigrateAsync();
+
+        if (!await db.Procedimentos.AnyAsync())
+        {
+            db.Procedimentos.Add(new Procedimento
+            {
+                Nome = "Consulta",
+                DuracaoMin = 30   // <-- nome correto
+            });
+
+            await db.SaveChangesAsync();
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[Startup] Erro aplicando migrations/seed: {ex}");
+        throw; // deixe falhar se der problema; fica visível no log do Render
     }
 }
 
