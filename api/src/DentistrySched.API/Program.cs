@@ -33,8 +33,13 @@ app.UseCors();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
     await db.Database.MigrateAsync();
-    await SeedDev.RunAsync(db);
+
+    if (app.Environment.IsDevelopment())
+    {
+        await SeedDev.RunAsync(db);
+    }
 }
 
 app.MapControllers();

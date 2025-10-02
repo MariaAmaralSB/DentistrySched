@@ -16,6 +16,12 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<None Update="dentistry.db">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+	</ItemGroup>
+
+	<ItemGroup>
 		<ProjectReference Include="..\DentistrySched.Infrastructure\DentistrySched.Infrastructure.csproj" />
 		<ProjectReference Include="..\DentistrySched.Application\DentistrySched.Application.csproj" />
 	</ItemGroup>
