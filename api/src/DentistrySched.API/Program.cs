@@ -34,28 +34,28 @@ app.UseCors();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-
     try
     {
+        // 1) Migra o banco
+        var pending = await db.Database.GetPendingMigrationsAsync();
+        if (pending.Any())
+            Console.WriteLine($"[DB] Pending migrations: {string.Join(", ", pending)}");
         await db.Database.MigrateAsync();
 
+        // 2) Seed mínimo (seguro — não depende de propriedade específica)
         if (!await db.Procedimentos.AnyAsync())
         {
-            db.Procedimentos.Add(new Procedimento
-            {
-                Nome = "Consulta",
-                DuracaoMin = 30   // <-- nome correto
-            });
-
+            db.Procedimentos.Add(new Procedimento { Nome = "Consulta" });
             await db.SaveChangesAsync();
+            Console.WriteLine("[DB] Seed de Procedimentos aplicado.");
         }
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"[Startup] Erro aplicando migrations/seed: {ex}");
-        throw; // deixe falhar se der problema; fica visível no log do Render
+        Console.WriteLine("[DB] Erro ao migrar/seedar: " + ex);
     }
 }
+
 
 app.MapControllers();
 app.Run();
