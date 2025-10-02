@@ -5,81 +5,94 @@ using DentistrySched.Application.Services;
 using DentistrySched.Domain.Entities;
 using DentistrySched.Infrastructure;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Controllers & Swagger
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// DbContext (migrations ficam no assembly da Infra)
 builder.Services.AddDbContext<AppDbContext>(opt =>
 {
     var cs = builder.Configuration.GetConnectionString("Default")!;
     opt.UseSqlite(cs, sql => sql.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName));
 });
 
+// CORS (apenas UMA vez)
 builder.Services.AddCors(opt =>
 {
     opt.AddDefaultPolicy(p => p.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
 });
 
+// APP services
 builder.Services.AddScoped<ISlotService, SlotService>();
+
+// Hosted service (pode ficar, mas ele tem um delay interno para não bater antes das tabelas)
+// Se quiser testar sem ele, comente esta linha temporariamente.
 builder.Services.AddHostedService<ConsultaReminderService>();
-builder.Services.AddCors(opt =>
-{
-    opt.AddDefaultPolicy(p => p.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
-});
 
 var app = builder.Build();
 
+// Middlewares
 app.UseSwagger();
 app.UseSwaggerUI();
 app.UseCors();
 
+// ==== MIGRATE & SEED ANTES DE SUBIR A API ====
 using (var scope = app.Services.CreateScope())
 {
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     try
     {
         var cs = app.Configuration.GetConnectionString("Default");
-        Console.WriteLine($"[DB] ConnectionString: {cs}");
+        logger.LogInformation("[DB] ConnectionString: {cs}", cs);
 
-        var pending = await db.Database.GetPendingMigrationsAsync();
         var applied = await db.Database.GetAppliedMigrationsAsync();
+        var pending = await db.Database.GetPendingMigrationsAsync();
 
-        Console.WriteLine($"[DB] Applied: {string.Join(", ", applied)}");
-        Console.WriteLine($"[DB] Pending: {string.Join(", ", pending)}");
+        logger.LogInformation("[DB] Applied: {applied}", string.Join(", ", applied));
+        logger.LogInformation("[DB] Pending: {pending}", string.Join(", ", pending));
 
         if (pending.Any() || !applied.Any())
         {
-            Console.WriteLine("[DB] Running MigrateAsync()...");
+            logger.LogInformation("[DB] Running MigrateAsync()...");
             await db.Database.MigrateAsync();
         }
 
-        // fallback: se por qualquer motivo não tiver migration aplicada, assegura o schema
         applied = await db.Database.GetAppliedMigrationsAsync();
         if (!applied.Any())
         {
-            Console.WriteLine("[DB] No applied migrations, calling EnsureCreatedAsync()...");
+            // Só usa EnsureCreated se REALMENTE não há migrations.
+            logger.LogWarning("[DB] No applied migrations, calling EnsureCreatedAsync()...");
             await db.Database.EnsureCreatedAsync();
         }
 
-        // Seed mínimo
+        // Seed mínimo (ajuste o nome da propriedade conforme seu domínio)
         if (!await db.Procedimentos.AnyAsync())
         {
-            db.Procedimentos.Add(new Procedimento { Nome = "Consulta" }); // use só o que existe na entidade
+            db.Procedimentos.Add(new Procedimento
+            {
+                Nome = "Consulta",
+                // Se sua entidade usa DuracaoEmMinutos, descomente:
+                // DuracaoEmMinutos = 30
+            });
             await db.SaveChangesAsync();
-            Console.WriteLine("[DB] Seed inserted (Procedimentos).");
+            logger.LogInformation("[DB] Seed inserted (Procedimentos).");
         }
 
-        Console.WriteLine("[DB] Startup DB init done.");
+        logger.LogInformation("[DB] Startup DB init done.");
     }
     catch (Exception ex)
     {
-        Console.WriteLine("[DB] ERROR on startup: " + ex);
+        logger.LogError(ex, "[DB] ERROR on startup");
+        throw; // falhe se não conseguir criar as tabelas
     }
 }
-
+// ============================================
 
 app.MapControllers();
 app.Run();
