@@ -17,6 +17,44 @@ namespace DentistrySched.Infrastructure.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.9");
 
+            modelBuilder.Entity("DentistrySched.Domain.Entities.AgendaExcecao", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<TimeOnly?>("AbrirManhaAte")
+                        .HasColumnType("TEXT");
+
+                    b.Property<TimeOnly?>("AbrirManhaDe")
+                        .HasColumnType("TEXT");
+
+                    b.Property<TimeOnly?>("AbrirTardeAte")
+                        .HasColumnType("TEXT");
+
+                    b.Property<TimeOnly?>("AbrirTardeDe")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly>("Data")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("DentistaId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("FechadoDiaTodo")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Motivo")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DentistaId", "Data")
+                        .IsUnique();
+
+                    b.ToTable("AgendaExcecoes");
+                });
+
             modelBuilder.Entity("DentistrySched.Domain.Entities.AgendaRegra", b =>
                 {
                     b.Property<Guid>("Id")

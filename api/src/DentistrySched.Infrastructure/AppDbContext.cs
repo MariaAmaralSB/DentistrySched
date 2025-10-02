@@ -13,6 +13,7 @@ public class AppDbContext : DbContext
     public DbSet<AgendaRegra> AgendaRegras => Set<AgendaRegra>();
     public DbSet<Paciente> Pacientes => Set<Paciente>();
     public DbSet<Consulta> Consultas => Set<Consulta>();
+    public DbSet<AgendaExcecao> AgendaExcecoes => Set<AgendaExcecao>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
@@ -50,6 +51,10 @@ public class AppDbContext : DbContext
                   v => JsonSerializer.Deserialize<string[]>(v, (JsonSerializerOptions)null) ?? Array.Empty<string>()
               );
         });
+
+        mb.Entity<AgendaExcecao>()
+          .HasIndex(x => new { x.DentistaId, x.Data })
+          .IsUnique();
 
         base.OnModelCreating(mb);
     }
