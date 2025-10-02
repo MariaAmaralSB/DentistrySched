@@ -1,0 +1,28 @@
+# Etapa 1: Build da aplicação
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+WORKDIR /src
+
+# Copiar os arquivos de projeto e restaurar dependências
+COPY ["DentistrySched.API/DentistrySched.API.csproj", "DentistrySched.API/"]
+COPY ["DentistrySched.Application/DentistrySched.Application.csproj", "DentistrySched.Application/"]
+COPY ["DentistrySched.Domain/DentistrySched.Domain.csproj", "DentistrySched.Domain/"]
+COPY ["DentistrySched.Infrastructure/DentistrySched.Infrastructure.csproj", "DentistrySched.Infrastructure/"]
+
+RUN dotnet restore "DentistrySched.API/DentistrySched.API.csproj"
+
+# Copiar todo o restante e publicar
+COPY . .
+WORKDIR /src/DentistrySched.API
+RUN dotnet publish "DentistrySched.API.csproj" -c Release -o /app/publish
+
+# Etapa 2: Runtime da aplicação
+FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
+WORKDIR /app
+COPY --from=build /app/publish .
+
+# Variável de ambiente
+ENV ASPNETCORE_URLS=http://+:8080
+EXPOSE 8080
+
+# Comando de inicialização
+ENTRYPOINT ["dotnet", "DentistrySched.API.dll"]
