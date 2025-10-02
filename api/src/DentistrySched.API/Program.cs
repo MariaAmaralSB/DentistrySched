@@ -15,7 +15,12 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddDbContext<AppDbContext>(opt =>
 {
     var cs = builder.Configuration.GetConnectionString("Default")!;
-    opt.UseSqlite(cs);
+    opt.UseSqlite(cs, sql => sql.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName));
+});
+
+builder.Services.AddCors(opt =>
+{
+    opt.AddDefaultPolicy(p => p.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
 });
 
 builder.Services.AddScoped<ISlotService, SlotService>();
@@ -36,23 +41,42 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     try
     {
-        // 1) Migra o banco
-        var pending = await db.Database.GetPendingMigrationsAsync();
-        if (pending.Any())
-            Console.WriteLine($"[DB] Pending migrations: {string.Join(", ", pending)}");
-        await db.Database.MigrateAsync();
+        var cs = app.Configuration.GetConnectionString("Default");
+        Console.WriteLine($"[DB] ConnectionString: {cs}");
 
-        // 2) Seed mínimo (seguro — não depende de propriedade específica)
+        var pending = await db.Database.GetPendingMigrationsAsync();
+        var applied = await db.Database.GetAppliedMigrationsAsync();
+
+        Console.WriteLine($"[DB] Applied: {string.Join(", ", applied)}");
+        Console.WriteLine($"[DB] Pending: {string.Join(", ", pending)}");
+
+        if (pending.Any() || !applied.Any())
+        {
+            Console.WriteLine("[DB] Running MigrateAsync()...");
+            await db.Database.MigrateAsync();
+        }
+
+        // fallback: se por qualquer motivo não tiver migration aplicada, assegura o schema
+        applied = await db.Database.GetAppliedMigrationsAsync();
+        if (!applied.Any())
+        {
+            Console.WriteLine("[DB] No applied migrations, calling EnsureCreatedAsync()...");
+            await db.Database.EnsureCreatedAsync();
+        }
+
+        // Seed mínimo
         if (!await db.Procedimentos.AnyAsync())
         {
-            db.Procedimentos.Add(new Procedimento { Nome = "Consulta" });
+            db.Procedimentos.Add(new Procedimento { Nome = "Consulta" }); // use só o que existe na entidade
             await db.SaveChangesAsync();
-            Console.WriteLine("[DB] Seed de Procedimentos aplicado.");
+            Console.WriteLine("[DB] Seed inserted (Procedimentos).");
         }
+
+        Console.WriteLine("[DB] Startup DB init done.");
     }
     catch (Exception ex)
     {
-        Console.WriteLine("[DB] Erro ao migrar/seedar: " + ex);
+        Console.WriteLine("[DB] ERROR on startup: " + ex);
     }
 }
 
