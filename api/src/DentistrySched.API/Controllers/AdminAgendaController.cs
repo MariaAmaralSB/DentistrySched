@@ -269,7 +269,6 @@ public class AdminAgendaController : ControllerBase
             });
         }
 
-        // 4) Projeção leve para UI
         var light = slots.Select(s => new
         {
             hora = SafeHour(s.HoraISO),   // "HH:mm"
@@ -297,8 +296,21 @@ public class AdminAgendaController : ControllerBase
 
         static int GetStatusLight(SlotDto s)
         {
-            // se houver s.Ocupado (bool):
-            try { return (bool)(object?)typeof(SlotDto).GetProperty("Ocupado")!.GetValue(s)! ? 1 : 0; } catch { }
+            var pOcc = typeof(SlotDto).GetProperty("Ocupado");
+            if (pOcc != null)
+            {
+                var v = pOcc.GetValue(s);
+                if (v is bool b) return b ? 1 : 0;
+            }
+
+            var pStat = typeof(SlotDto).GetProperty("Status");
+            if (pStat != null)
+            {
+                var v = pStat.GetValue(s);
+                if (v is int i) return i;
+                if (v != null && int.TryParse(v.ToString(), out var j)) return j;
+            }
+
             return 0;
         }
     }

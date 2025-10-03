@@ -5,22 +5,24 @@ import { AdminAPI, DiaMesStatus, ExcecaoDia, ConsultaDia } from "../api/client";
 type Dentista = { id: string; nome: string; cro?: string };
 type DiaResumo = { dia: number };
 
+// cabeçalho da grade
 const nomesDias = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
+// helpers de datas (sem fuso/UTC)
 const primeiroDiaSemana = (y: number, m: number) => new Date(y, m - 1, 1).getDay();
 const qtdeDiasNoMes     = (y: number, m: number) => new Date(y, m, 0).getDate();
 const isoDate = (y: number, m: number, d: number) => {
   const mm = String(m).padStart(2, "0");
   const dd = String(d).padStart(2, "0");
   return `${y}-${mm}-${dd}`;
-}; 
+};
 const formatISOToBR = (iso: string) => {
   const [yy, mm, dd] = iso.split("-");
   return `${dd}/${mm}/${yy}`;
 };
 
 export default function AdminAgenda() {
-  // ---- dentistas
+  // ---------------- dentistas
   const [dentistas, setDentistas] = useState<Dentista[]>([]);
   const [dentistaId, setDentistaId] = useState("");
   useEffect(() => {
@@ -35,7 +37,7 @@ export default function AdminAgenda() {
   }, []);
   const dentistaIdVal = dentistaId || dentistas[0]?.id || "";
 
-  // ---- mês visível (leve)
+  // ---------------- mês visível (leve)
   const hoje = new Date();
   const [ano, setAno] = useState(hoje.getFullYear());
   const [mes, setMes] = useState(hoje.getMonth() + 1);
@@ -59,7 +61,7 @@ export default function AdminAgenda() {
     setDiaData([]);
   };
 
-  // ---- status leve do mês
+  // ---------------- status leve do mês
   const [mesStatus, setMesStatus] = useState<DiaMesStatus[]>([]);
   useEffect(() => {
     let cancel = false;
@@ -77,10 +79,14 @@ export default function AdminAgenda() {
     return m;
   }, [mesStatus]);
 
-  // ---- detalhe do dia (consultas) sob demanda
+  // ---------------- detalhe do dia (slots/consultas) sob demanda
   const [diaSelecionado, setDiaSelecionado] = useState<number | undefined>();
   const [loadingDia, setLoadingDia] = useState(false);
-  const [diaData, setDiaData] = useState<ConsultaDia[] | any>([]);
+
+  // pode vir lista de consultas OU de slots leves
+  type SlotLight = { hora: string; status?: number };
+  const [diaData, setDiaData] = useState<Array<ConsultaDia | SlotLight>>([]);
+
   const abortRef = useRef<AbortController | null>(null);
 
   const carregarDia = async (d: number) => {
@@ -97,11 +103,12 @@ export default function AdminAgenda() {
 
     try {
       const dataISO = isoDate(ano, mes, d);
+      // o client já normaliza e devolve um array (slots leves)
       const resp = await AdminAPI.agendaDia(dentistaIdVal, dataISO /*, ac.signal*/);
 
-      // Pode vir { slots: [...] } OU um array direto
-      const slots = Array.isArray(resp?.slots) ? resp.slots : (Array.isArray(resp) ? resp : []);
-      setDiaData(slots);
+      // Pode ser {slots:[...]} ou array direto (client já trata).
+      const lista = Array.isArray(resp?.slots) ? resp.slots : (Array.isArray(resp) ? resp : []);
+      setDiaData(lista as Array<ConsultaDia | SlotLight>);
     } catch (err) {
       console.error("Erro ao carregar dia:", err);
       setDiaData([]);
@@ -111,15 +118,15 @@ export default function AdminAgenda() {
   };
   useEffect(() => () => abortRef.current?.abort(), []);
 
-  // ---- modal de exceção do dia
+  // ---------------- modal de exceção do dia
   const [showModal, setShowModal] = useState(false);
   const [ex, setEx] = useState<ExcecaoDia | null>(null);
 
   const abrirModalDia = (d: number) => {
-    // Abre o modal imediatamente
+    // abre o modal imediatamente (não depende do await)
     setShowModal(true);
 
-    // Estado inicial para o modal (mostra o layout na hora)
+    // estado inicial
     const dataISO = isoDate(ano, mes, d);
     setDiaSelecionado(d);
     setDiaData([]);
@@ -134,7 +141,7 @@ export default function AdminAgenda() {
       motivo: null,
     });
 
-    // Carrega em background
+    // carrega em background
     (async () => {
       try {
         await carregarDia(d);
@@ -146,7 +153,6 @@ export default function AdminAgenda() {
         if (atual) setEx(atual);
       } catch (e) {
         console.error("Erro ao carregar exceção do dia:", e);
-        // mantém ex default
       }
     })();
   };
@@ -166,7 +172,7 @@ export default function AdminAgenda() {
     setShowModal(false);
   };
 
-  // ---- helpers visuais
+  // ---------------- helpers visuais
   const statusClass = (dia: number) => {
     const s = statusMap.get(dia)?.status;
     if (s === 1) return "bg-red-50 border-red-200";
@@ -180,8 +186,8 @@ export default function AdminAgenda() {
     return s.motivo ? `${label} • ${s.motivo}` : label;
   };
 
-  // ---- presets
-  const setPreset = (qual: "manha"|"tarde"|"comercial") => {
+  // ---------------- presets
+  const setPreset = (qual: "manha" | "tarde" | "comercial") => {
     if (!ex) return;
     const novo = { ...ex };
     if (qual === "manha" || qual === "comercial") {
@@ -263,11 +269,7 @@ export default function AdminAgenda() {
           <div className="bg-white rounded-2xl shadow w-full max-w-2xl p-4">
             <div className="flex items-center justify-between">
               <div className="text-lg font-semibold">
-                  {ex ? (
-                    <>Abrir agenda — {formatISOToBR(ex.data)}</>
-                  ) : (
-                    <>Abrir agenda — Carregando…</>
-                  )}
+                {ex ? (<>Abrir agenda — {formatISOToBR(ex.data)}</>) : (<>Abrir agenda — Carregando…</>)}
               </div>
               <button className="border rounded px-3 py-1" onClick={() => setShowModal(false)}>Fechar</button>
             </div>
@@ -328,23 +330,39 @@ export default function AdminAgenda() {
                   <button className="border rounded px-3 py-1 bg-blue-600 text-white" onClick={salvarExcecao}>Salvar</button>
                 </div>
 
-                {/* Detalhes do dia (consultas) */}
+                {/* Detalhes do dia (consultas / slots) */}
                 <div className="border-t pt-3 mt-2">
                   <div className="font-medium mb-1">Consultas do dia</div>
+
                   {loadingDia ? (
                     <div className="text-gray-600">Carregando...</div>
                   ) : (() => {
-                    const safe: ConsultaDia[] = Array.isArray(diaData) ? diaData : [];
-                    if (safe.length === 0) return <div className="text-gray-600">Nenhuma consulta.</div>;
+                    const arr = Array.isArray(diaData) ? diaData : [];
+                    if (arr.length === 0) return <div className="text-gray-600">Nenhuma consulta.</div>;
+
+                    const isConsulta = (x: any): x is ConsultaDia => typeof x?.paciente === "string";
+
                     return (
                       <ul className="space-y-2">
-                        {safe.map((it) => (
-                          <li key={it.id} className="bg-gray-50 rounded px-3 py-2 flex items-center justify-between">
-                            <div className="text-sm">
-                              <b>{it.hora}</b> — {it.paciente} <span className="text-gray-500">({it.procedimento})</span>
-                            </div>
-                          </li>
-                        ))}
+                        {arr.map((item, idx) => {
+                          const key = (item as any).id ?? `slot-${(item as SlotLight).hora}-${idx}`;
+                          if (isConsulta(item)) {
+                            // consulta completa
+                            return (
+                              <li key={key} className="bg-gray-50 rounded px-3 py-2 flex items-center justify-between">
+                                <div className="text-sm">
+                                  <b>{item.hora}</b> — {item.paciente} <span className="text-gray-500">({item.procedimento})</span>
+                                </div>
+                              </li>
+                            );
+                          } else {
+                            return (
+                              <li key={key} className="bg-gray-50 rounded px-3 py-2 flex items-center justify-between">
+                                <div className="text-sm"><b>{item.hora}</b></div>
+                              </li>
+                            );
+                          }
+                        })}
                       </ul>
                     );
                   })()}

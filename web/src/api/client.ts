@@ -65,8 +65,11 @@ export const AdminAPI = {
   },
 
   procedimentos: async () => {
-    const r = await api.get("/admin/procedimentos");
-    return Array.isArray(r.data) ? r.data : [];
+  const r = await api.get("/admin/procedimentos");
+  const d = r.data;
+    if (Array.isArray(d)) return d;           // formato antigo: []
+    if (Array.isArray(d?.items)) return d.items; // formato novo: { items: [] }
+    return [];
   },
 
   criarDentista: async (payload: { nome: string; cro?: string }) => {
@@ -117,7 +120,6 @@ export const AdminAPI = {
     }
   },
 
-  // (LEGADO) Agenda do mês “pesada” – mantenha só se ainda usa
   agendaMes: async (dentistaId: string, ano: number, mes: number, procedimentoId?: string) => {
     if (!dentistaId) return [];
     const params: any = { dentistaId, ano, mes };
@@ -131,8 +133,6 @@ export const AdminAPI = {
     }
   },
 
-  // ---------------- Detalhe do dia (otimizado)
-  // Retorna SEMPRE ConsultaDia[] (slots “leves”). Aceita AbortSignal opcional.
   agendaDia: async (
     dentistaId: string,
     dataISO: string,
@@ -177,6 +177,16 @@ export const AdminAPI = {
 
   removerExcecaoDia: async (dentistaId: string, dataISO: string) => {
     await api.delete("/admin/agenda-excecao", { params: { dentistaId, data: dataISO } });
+  },
+  criarProcedimento: async (payload: { nome: string; duracaoMin: number; bufferMin: number }) => {
+  const r = await api.post("/admin/procedimentos", payload);
+  return r.data;
+  },
+  atualizarProcedimento: async (id: string, payload: { nome: string; duracaoMin: number; bufferMin: number }) => {
+    await api.put(`/admin/procedimentos/${id}`, payload);
+  },
+  removerProcedimento: async (id: string) => {
+    await api.delete(`/admin/procedimentos/${id}`);
   },
 };
 

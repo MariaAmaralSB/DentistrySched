@@ -23,7 +23,6 @@ type AgendaItem = {
 
 type Dentista = { id: string; nome: string; cro?: string };
 
-/** Rótulos/cores simples para status */
 const STATUS_INFO: Record<
   number,
   { text: string; className: string }
@@ -31,7 +30,6 @@ const STATUS_INFO: Record<
   0: { text: "Agendada",  className: "bg-gray-100 text-gray-800" },
   1: { text: "Confirmada", className: "bg-green-100 text-green-800" },
   2: { text: "Cancelada",  className: "bg-red-100 text-red-800" },
-  // se houver outros estados, eles entram aqui:
   3: { text: "No-show",    className: "bg-yellow-100 text-yellow-800" },
   4: { text: "Remarcada",  className: "bg-blue-100 text-blue-800" },
 };
@@ -39,7 +37,7 @@ const STATUS_INFO: Record<
 export default function Dashboard() {
   const [data, setData] = useState(() =>
     new Date().toISOString().slice(0, 10)
-  ); // yyyy-mm-dd
+  ); 
   const [dentistas, setDentistas] = useState<Dentista[]>([]);
   const [dentistaId, setDentistaId] = useState("");
   const [itens, setItens] = useState<AgendaItem[]>([]);
@@ -52,20 +50,18 @@ export default function Dashboard() {
   const carregar = async () => {
     setLoading(true);
     const lista = await AdminAPI.agendaDoDia(data, dentistaId || undefined);
-    setItens(lista as AgendaItem[]); // tipagem local
+    setItens(lista as AgendaItem[]); 
     setLoading(false);
   };
 
   useEffect(() => {
     carregar();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, dentistaId]);
 
   const kpis = useMemo(() => {
     const total = itens.length;
     const confirmadas = itens.filter((i) => i.status === 1).length;
     const canceladas = itens.filter((i) => i.status === 2).length;
-    // agendadas = tudo que não é confirmada nem cancelada
     const agendadas = total - confirmadas - canceladas;
     return { total, confirmadas, canceladas, agendadas };
   }, [itens]);
