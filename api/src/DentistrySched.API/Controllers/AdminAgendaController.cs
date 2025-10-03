@@ -12,49 +12,57 @@ public class AdminAgendaController : ControllerBase
     private readonly AppDbContext _db;
     public AdminAgendaController(AppDbContext db) => _db = db;
 
-    // GET /admin/agenda-regras?dentistaId=GUID
     [HttpGet]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Get([FromQuery] Guid dentistaId, CancellationToken ct)
     {
-        if (dentistaId == Guid.Empty) return BadRequest("dentistaId obrigatório.");
+        if (dentistaId == Guid.Empty)
+            return BadRequest("dentistaId obrigatório.");
 
-        var regras = await _db.AgendaRegras.AsNoTracking()
+        var regs = await _db.AgendaRegras
+            .AsNoTracking()
             .Where(r => r.DentistaId == dentistaId)
             .OrderBy(r => r.DiaSemana)
+            .Select(r => new { r.DiaSemana, r.InicioManha, r.FimManha, r.InicioTarde, r.FimTarde })
             .ToListAsync(ct);
 
-        var dto = regras.Select(x => new
+        var dto = regs.Select(x => new
         {
             x.DiaSemana,
             InicioManha = x.InicioManha == default ? null : x.InicioManha.ToString("HH:mm"),
             FimManha = x.FimManha == default ? null : x.FimManha.ToString("HH:mm"),
             InicioTarde = x.InicioTarde?.ToString("HH:mm"),
-            FimTarde = x.FimTarde?.ToString("HH:mm")
+            FimTarde = x.FimTarde?.ToString("HH:mm"),
         });
 
         return Ok(dto);
     }
-
-    // PUT /admin/agenda-regras/{dentistaId} -> substitui a semana inteira do dentista
     [HttpPut("{dentistaId:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Put(Guid dentistaId, [FromBody] List<AgendaRegraUpsertDto> regras, CancellationToken ct)
     {
         if (dentistaId == Guid.Empty) return BadRequest("dentistaId obrigatório.");
 
-        var existentes = await _db.AgendaRegras
+        await using var tx = await _db.Database.BeginTransactionAsync(ct);
+
+        await _db.AgendaRegras
             .Where(r => r.DentistaId == dentistaId)
-            .ToListAsync(ct);
+            .ExecuteDeleteAsync(ct);
 
-        _db.AgendaRegras.RemoveRange(existentes);
+        var novas = new List<Domain.Entities.AgendaRegra>(regras?.Count ?? 0);
 
-        foreach (var dto in regras)
+        foreach (var dto in regras ?? [])
         {
-            var (im, fm, it, ft) = Parse(dto);
+            if (!TryParse(dto, out var im, out var fm, out var it, out var ft, out var erro))
+                return BadRequest(erro);
+
             var temManha = im.HasValue && fm.HasValue;
             var temTarde = it.HasValue && ft.HasValue;
             if (!temManha && !temTarde) continue;
 
-            _db.AgendaRegras.Add(new Domain.Entities.AgendaRegra
+            novas.Add(new Domain.Entities.AgendaRegra
             {
                 DentistaId = dentistaId,
                 DiaSemana = dto.DiaSemana,
@@ -65,33 +73,42 @@ public class AdminAgendaController : ControllerBase
             });
         }
 
+        if (novas.Count > 0)
+            await _db.AgendaRegras.AddRangeAsync(novas, ct);
+
         await _db.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
         return NoContent();
     }
 
-    // POST /admin/agenda-regras/{dentistaId} -> atualiza apenas os dias enviados
     [HttpPost("{dentistaId:guid}")]
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Post(Guid dentistaId, [FromBody] List<AgendaRegraUpsertDto> regras, CancellationToken ct)
     {
         if (dentistaId == Guid.Empty) return BadRequest("dentistaId obrigatório.");
         if (regras is null || regras.Count == 0) return BadRequest("Informe ao menos uma regra.");
 
+        await using var tx = await _db.Database.BeginTransactionAsync(ct);
+
         var dias = regras.Select(r => r.DiaSemana).Distinct().ToArray();
 
-        var existentes = await _db.AgendaRegras
+        await _db.AgendaRegras
             .Where(r => r.DentistaId == dentistaId && dias.Contains(r.DiaSemana))
-            .ToListAsync(ct);
+            .ExecuteDeleteAsync(ct);
 
-        _db.AgendaRegras.RemoveRange(existentes);
+        var novas = new List<Domain.Entities.AgendaRegra>(regras.Count);
 
         foreach (var dto in regras)
         {
-            var (im, fm, it, ft) = Parse(dto);
+            if (!TryParse(dto, out var im, out var fm, out var it, out var ft, out var erro))
+                return BadRequest(erro);
+
             var temManha = im.HasValue && fm.HasValue;
             var temTarde = it.HasValue && ft.HasValue;
             if (!temManha && !temTarde) continue;
 
-            _db.AgendaRegras.Add(new Domain.Entities.AgendaRegra
+            novas.Add(new Domain.Entities.AgendaRegra
             {
                 DentistaId = dentistaId,
                 DiaSemana = dto.DiaSemana,
@@ -102,40 +119,57 @@ public class AdminAgendaController : ControllerBase
             });
         }
 
-        await _db.SaveChangesAsync(ct);
+        if (novas.Count > 0)
+            await _db.AgendaRegras.AddRangeAsync(novas, ct);
 
-      
+        await _db.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
+
         var regs = await _db.AgendaRegras.AsNoTracking()
             .Where(r => r.DentistaId == dentistaId)
             .OrderBy(r => r.DiaSemana)
-        .ToListAsync(ct); 
+            .Select(x => new
+            {
+                x.DiaSemana,
+                InicioManha = x.InicioManha == default ? null : x.InicioManha.ToString("HH:mm"),
+                FimManha = x.FimManha == default ? null : x.FimManha.ToString("HH:mm"),
+                InicioTarde = x.InicioTarde.HasValue ? x.InicioTarde.Value.ToString("HH:mm") : null,
+                FimTarde = x.FimTarde.HasValue ? x.FimTarde.Value.ToString("HH:mm") : null
+            })
+            .ToListAsync(ct);
 
-        var result = regs.Select(x => new
-        {
-            x.DiaSemana,
-            InicioManha = x.InicioManha == default ? null : x.InicioManha.ToString("HH:mm"),
-            FimManha = x.FimManha == default ? null : x.FimManha.ToString("HH:mm"),
-            InicioTarde = x.InicioTarde.HasValue ? x.InicioTarde.Value.ToString("HH:mm") : null,
-            FimTarde = x.FimTarde.HasValue ? x.FimTarde.Value.ToString("HH:mm") : null
-        }).ToList();
-
-        return CreatedAtAction(nameof(Get), new { dentistaId }, result);
+        return CreatedAtAction(nameof(Get), new { dentistaId }, regs);
     }
 
-    private static (TimeOnly? im, TimeOnly? fm, TimeOnly? it, TimeOnly? ft) Parse(AgendaRegraUpsertDto dto)
+    private static bool TryParse(
+    AgendaRegraUpsertDto dto,
+    out TimeOnly? im, out TimeOnly? fm,
+    out TimeOnly? it, out TimeOnly? ft,
+    out string? erro)
     {
-        TimeOnly? P(string? s) => string.IsNullOrWhiteSpace(s) ? null : TimeOnly.ParseExact(s, "HH:mm");
+        im = fm = it = ft = null;
+        erro = null;
 
-        var im = P(dto.InicioManha);
-        var fm = P(dto.FimManha);
-        var it = P(dto.InicioTarde);
-        var ft = P(dto.FimTarde);
+        static bool Try(string? s, out TimeOnly? t)
+        {
+            if (string.IsNullOrWhiteSpace(s)) { t = null; return true; }
+            var ok = TimeOnly.TryParseExact(s, "HH:mm", out var parsed);
+            t = ok ? parsed : null;
+            return ok;
+        }
+
+        if (!Try(dto.InicioManha, out im)) { erro = $"InicioManha inválido em {dto.DiaSemana}"; return false; }
+        if (!Try(dto.FimManha, out fm)) { erro = $"FimManha inválido em {dto.DiaSemana}"; return false; }
+
+        if (!Try(dto.InicioTarde, out it)) { erro = $"InicioTarde inválido em {dto.DiaSemana}"; return false; }
+        if (!Try(dto.FimTarde, out ft)) { erro = $"FimTarde inválido em {dto.DiaSemana}"; return false; }
 
         if (im.HasValue && fm.HasValue && im.Value >= fm.Value)
-            throw new ArgumentException($"Período da manhã inválido em {dto.DiaSemana}");
-        if (it.HasValue && ft.HasValue && it.Value >= ft.Value)
-            throw new ArgumentException($"Período da tarde inválido em {dto.DiaSemana}");
+        { erro = $"Período da manhã inválido em {dto.DiaSemana}"; return false; }
 
-        return (im, fm, it, ft);
+        if (it.HasValue && ft.HasValue && it.Value >= ft.Value)
+        { erro = $"Período da tarde inválido em {dto.DiaSemana}"; return false; }
+
+        return true;
     }
 }

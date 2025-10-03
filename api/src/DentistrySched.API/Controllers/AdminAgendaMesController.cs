@@ -27,11 +27,11 @@ public class AdminAgendaMesController : ControllerBase
     /// </summary>
     [HttpGet]
     public async Task<IActionResult> Get(
-        [FromQuery] Guid dentistaId,
-        [FromQuery] int ano,
-        [FromQuery] int mes,
-        [FromQuery] Guid? procedimentoId,
-        CancellationToken ct)
+    [FromQuery] Guid dentistaId,
+    [FromQuery] int ano,
+    [FromQuery] int mes,
+    [FromQuery] Guid? procedimentoId,
+    CancellationToken ct)
     {
         if (dentistaId == Guid.Empty) return BadRequest("dentistaId obrigatório.");
         if (ano < 2000 || mes is < 1 or > 12) return BadRequest("ano/mes inválidos.");
@@ -39,47 +39,58 @@ public class AdminAgendaMesController : ControllerBase
         var primeiro = new DateOnly(ano, mes, 1);
         var ultimo = primeiro.AddMonths(1).AddDays(-1);
 
+        // Só checa exceções/fechamentos (leve!)
         var excecoes = await _db.AgendaExcecoes
+            .AsNoTracking()
             .Where(e => e.DentistaId == dentistaId && e.Data >= primeiro && e.Data <= ultimo)
             .ToListAsync(ct);
 
         var dias = new List<DiaMesDto>(ultimo.Day);
-
         for (var d = 1; d <= ultimo.Day; d++)
         {
             var data = new DateOnly(ano, mes, d);
             var exc = excecoes.FirstOrDefault(x => x.Data == data);
 
-            if (exc?.FechadoDiaTodo == true)
-            {
-                dias.Add(new DiaMesDto(d, true, 0, 0, 0, exc.Motivo));
-                continue;
-            }
-
-            var procId = procedimentoId ?? await ProcPadrao(_db, ct);
-
-            IReadOnlyList<SlotDto> slots = await _slots.GerarSlotsAsync(
-                data,
-                dentistaId,
-                procId,
-                ct
-            );
-
-            int total = slots.Count;
-            int ocupados = 0;
-            int livres = total - ocupados;
-
-            if (exc is not null)
-            {
-                slots = FiltrarPorExcecao(slots, exc);
-                total = slots.Count;
-                livres = total - ocupados;
-            }
-
-            dias.Add(new DiaMesDto(d, total == 0, livres, ocupados, total, exc?.Motivo));
+            // não calcula slots aqui — tudo 0 (detalhe vem no clique)
+            var fechado = exc?.FechadoDiaTodo == true;
+            dias.Add(new DiaMesDto(d, fechado, 0, 0, 0, exc?.Motivo));
         }
 
         return Ok(dias);
+    }
+
+    [HttpGet("/admin/agenda-dia")]
+    public async Task<IActionResult> GetDia(
+    [FromQuery] Guid dentistaId,
+    [FromQuery] DateOnly data,
+    [FromQuery] Guid? procedimentoId,
+    CancellationToken ct)
+    {
+        if (dentistaId == Guid.Empty) return BadRequest("dentistaId obrigatório.");
+
+        var procId = procedimentoId ?? await ProcPadrao(_db, ct);
+
+        var slots = await _slots.GerarSlotsAsync(data, dentistaId, procId, ct);
+
+        var exc = await _db.AgendaExcecoes.AsNoTracking()
+            .FirstOrDefaultAsync(e => e.DentistaId == dentistaId && e.Data == data, ct);
+        if (exc is not null && (exc.AbrirManhaDe.HasValue || exc.AbrirTardeDe.HasValue))
+        {
+            slots = FiltrarPorExcecao(slots, exc);
+        }
+
+        var total = slots.Count;
+        var ocupados = 0; 
+        var livres = total - ocupados;
+
+        return Ok(new
+        {
+            dia = data.Day,
+            livres,
+            ocupados,
+            total,
+            slots
+        });
     }
 
     /// <summary>
@@ -98,20 +109,27 @@ public class AdminAgendaMesController : ControllerBase
     /// </summary>
     private static IReadOnlyList<SlotDto> FiltrarPorExcecao(IReadOnlyList<SlotDto> slots, AgendaExcecao exc)
     {
-        bool temJanManha = exc.AbrirManhaDe.HasValue && exc.AbrirManhaAte.HasValue;
-        bool temJanTarde = exc.AbrirTardeDe.HasValue && exc.AbrirTardeAte.HasValue;
+        bool temManha = exc.AbrirManhaDe.HasValue && exc.AbrirManhaAte.HasValue;
+        bool temTarde = exc.AbrirTardeDe.HasValue && exc.AbrirTardeAte.HasValue;
+        if (!temManha && !temTarde) return slots;
 
-        if (!temJanManha && !temJanTarde) return slots;
+        var manhaDe = exc.AbrirManhaDe.GetValueOrDefault();
+        var manhaAte = exc.AbrirManhaAte.GetValueOrDefault();
+        var tardeDe = exc.AbrirTardeDe.GetValueOrDefault();
+        var tardeAte = exc.AbrirTardeAte.GetValueOrDefault();
 
-        var filtrados = slots.Where(s =>
+        var list = new List<SlotDto>(slots.Count);
+        foreach (var s in slots)
         {
-            var t = TimeOnly.FromDateTime(DateTime.Parse(s.HoraISO));
-            bool dentroManha = temJanManha && t >= exc.AbrirManhaDe && t <= exc.AbrirManhaAte;
-            bool dentroTarde = temJanTarde && t >= exc.AbrirTardeDe && t <= exc.AbrirTardeAte;
-            return dentroManha || dentroTarde;
-        }).ToList();
+            var t = TimeOnly.FromDateTime(DateTime.Parse(s.HoraISO, null, System.Globalization.DateTimeStyles.RoundtripKind));
 
-        return filtrados;
+            bool ok =
+                (temManha && t >= manhaDe && t <= manhaAte) ||
+                (temTarde && t >= tardeDe && t <= tardeAte);
+
+            if (ok) list.Add(s);
+        }
+        return list;
     }
 
     /// <summary>

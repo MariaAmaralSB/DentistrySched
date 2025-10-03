@@ -19,15 +19,16 @@ public class AdminConsultasController : ControllerBase
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAgendaDoDia(
-        [FromQuery] DateOnly data,
-        [FromQuery] Guid? dentistaId,
-        CancellationToken ct)
+    [FromQuery] DateOnly data,
+    [FromQuery] Guid? dentistaId,
+    CancellationToken ct)
     {
-        var inicio = data.ToDateTime(TimeOnly.MinValue);
-        var fim = data.ToDateTime(TimeOnly.MaxValue);
+        var inicio = data.ToDateTime(TimeOnly.MinValue);   
+        var fim = inicio.AddDays(1);                       
 
-        var baseQuery = _db.Consultas.AsNoTracking()
-            .Where(c => c.Inicio >= inicio && c.Inicio <= fim);
+        var baseQuery = _db.Consultas
+            .AsNoTracking()
+            .Where(c => c.Inicio >= inicio && c.Inicio < fim);
 
         if (dentistaId is Guid d && d != Guid.Empty)
             baseQuery = baseQuery.Where(c => c.DentistaId == d);
@@ -44,13 +45,10 @@ public class AdminConsultasController : ControllerBase
                 Inicio = c.Inicio,
                 Fim = c.Fim,
                 Status = (int)c.Status,
-
                 DentistaId = den.Id,
                 DentistaNome = den.Nome,
-
                 PacienteId = pac.Id,
                 PacienteNome = pac.Nome,
-
                 ProcedimentoId = proc.Id,
                 ProcedimentoNome = proc.Nome
             }

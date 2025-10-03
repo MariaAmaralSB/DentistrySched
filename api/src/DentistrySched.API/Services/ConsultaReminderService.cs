@@ -1,5 +1,4 @@
-﻿using DentistrySched.Domain.Entities;
-using DentistrySched.Domain.Enums;
+﻿using DentistrySched.Domain.Enums;
 using DentistrySched.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -11,6 +10,8 @@ public class ConsultaReminderService : BackgroundService
 {
     private readonly IServiceProvider _provider;
     private readonly ILogger<ConsultaReminderService> _logger;
+
+    private static readonly TimeSpan Intervalo = TimeSpan.FromMinutes(10);
 
     public ConsultaReminderService(IServiceProvider provider, ILogger<ConsultaReminderService> logger)
     {
@@ -27,19 +28,29 @@ public class ConsultaReminderService : BackgroundService
                 using var scope = _provider.CreateScope();
                 var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-                var amanha = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(1));
+                var start = DateTime.UtcNow.Date.AddDays(1); 
+                var end = start.AddDays(1);                
+
                 var consultas = await db.Consultas
-                    .Include(c => c.PreTriagem)
-                    .Where(c => DateOnly.FromDateTime(c.Inicio) == amanha && c.Status == ConsultaStatus.Agendada)
+                    .AsNoTracking() 
+                                    
+                    .Where(c =>
+                        c.Inicio >= start &&
+                        c.Inicio < end &&
+                        c.Status == ConsultaStatus.Agendada)
+                    .Select(c => new
+                    {
+                        c.Id,
+                        c.Inicio,
+                        c.PacienteId 
+                    })
                     .ToListAsync(stoppingToken);
 
                 foreach (var c in consultas)
                 {
                     _logger.LogInformation(
-                        "📲 Lembrete: Consulta amanhã às {Hora} com paciente {PacienteId}",
-                        c.Inicio, c.PacienteId
-                    );
-
+                        "📲 Lembrete: Consulta amanhã às {Hora} (UTC) para paciente {PacienteId}",
+                        c.Inicio, c.PacienteId);
                 }
             }
             catch (Exception ex)
@@ -47,7 +58,11 @@ public class ConsultaReminderService : BackgroundService
                 _logger.LogError(ex, "Erro no serviço de lembrete");
             }
 
-            await Task.Delay(TimeSpan.FromHours(1), stoppingToken);
+            try
+            {
+                await Task.Delay(Intervalo, stoppingToken);
+            }
+            catch (OperationCanceledException) { }
         }
     }
 }

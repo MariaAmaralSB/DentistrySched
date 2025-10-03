@@ -74,6 +74,12 @@ export const AdminAPI = {
       return [];
     }
   },
+  agendaDia(dentistaId: string, dataISO: string, procedimentoId?: string) {
+    const params = new URLSearchParams({ dentistaId, data: dataISO });
+    if (procedimentoId) params.set("procedimentoId", procedimentoId);
+    return fetch(`${import.meta.env.VITE_API}/admin/agenda-dia?${params}`)
+      .then(r => r.json());
+  },
 };
 
 export const PublicAPI = {
