@@ -341,7 +341,6 @@ public class AdminAgendaController : ControllerBase
         }
     }
 
-    // =================== Exceção (abrir/fechar dia) ===================
 
     [HttpGet("/admin/agenda-excecao")]
     public async Task<IActionResult> GetExcecao(
@@ -420,10 +419,6 @@ public class AdminAgendaController : ControllerBase
 
         return NoContent();
     }
-
-    // ============================================================
-    // Helpers
-    // ============================================================
 
     private sealed record NormDia(int Dia, TimeOnly? Im, TimeOnly? Fm, TimeOnly? It, TimeOnly? Ft);
 
