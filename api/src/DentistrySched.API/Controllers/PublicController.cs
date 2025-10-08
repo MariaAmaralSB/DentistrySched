@@ -22,15 +22,73 @@ public class PublicController : ControllerBase
     }
 
     [HttpGet("slots")]
-    public async Task<ActionResult<IReadOnlyList<SlotDto>>> GetSlots(
-        [FromQuery] Guid dentistaId,
-        [FromQuery] Guid procedimentoId,
-        [FromQuery] DateOnly data,
-        CancellationToken ct)
+    [Produces("application/json")]
+    public async Task<IActionResult> GetSlots(
+    [FromQuery] Guid dentistaId,
+    [FromQuery] Guid procedimentoId,
+    [FromQuery] string data,          
+    CancellationToken ct)
     {
-        var result = await _slots.GerarSlotsAsync(data, dentistaId, procedimentoId, ct);
-        return Ok(result);
+        if (dentistaId == Guid.Empty) return BadRequest("dentistaId obrigatório.");
+        if (procedimentoId == Guid.Empty) return BadRequest("procedimentoId obrigatório.");
+        if (string.IsNullOrWhiteSpace(data)) return BadRequest("data obrigatória (yyyy-MM-dd).");
+
+        if (!DateOnly.TryParseExact(data, "yyyy-MM-dd", out var dia))
+            return BadRequest("data inválida. Use yyyy-MM-dd.");
+
+        var slots = await _slots.GerarSlotsAsync(dia, dentistaId, procedimentoId, ct);
+
+        var exc = await _db.AgendaExcecoes.AsNoTracking()
+            .Where(e => e.DentistaId == dentistaId && e.Data == dia)
+            .Select(e => new
+            {
+                e.FechadoDiaTodo,
+                e.AbrirManhaDe,
+                e.AbrirManhaAte,
+                e.AbrirTardeDe,
+                e.AbrirTardeAte
+            })
+            .FirstOrDefaultAsync(ct);
+
+        if (exc is not null)
+        {
+            if (exc.FechadoDiaTodo == true)
+            {
+                slots = Array.Empty<SlotDto>();
+            }
+            else
+            {
+                var temManha = exc.AbrirManhaDe.HasValue && exc.AbrirManhaAte.HasValue;
+                var temTarde = exc.AbrirTardeDe.HasValue && exc.AbrirTardeAte.HasValue;
+
+                if (temManha || temTarde)
+                {
+                    var manhaDe = exc.AbrirManhaDe ?? default;
+                    var manhaAte = exc.AbrirManhaAte ?? default;
+                    var tardeDe = exc.AbrirTardeDe ?? default;
+                    var tardeAte = exc.AbrirTardeAte ?? default;
+
+                    var filtrados = new List<SlotDto>(slots.Count);
+                    foreach (var s in slots)
+                    {
+                        var t = TimeOnly.FromDateTime(
+                            DateTime.Parse(s.HoraISO, null, System.Globalization.DateTimeStyles.RoundtripKind));
+
+                        var ok = (temManha && t >= manhaDe && t <= manhaAte)
+                              || (temTarde && t >= tardeDe && t <= tardeAte);
+
+                        if (ok) filtrados.Add(s);
+                    }
+                    slots = filtrados;
+                }
+            }
+        }
+
+        var resp = slots.Select(s => new { horaISO = s.HoraISO }).ToList();
+        return Ok(resp);
     }
+
+
 
     [HttpPost("consultas")]
     [Consumes("application/json")]

@@ -5,3 +5,11 @@
 :root { color-scheme: light; }
 body { @apply text-gray-900; }
 button { @apply transition; }
+@layer components {
+  .card {
+    @apply bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl;
+  }
+  .muted {
+    @apply text-slate-600 dark:text-slate-400;
+  }
+}

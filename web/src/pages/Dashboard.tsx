@@ -49,10 +49,12 @@ export default function Dashboard() {
 
   const carregar = async () => {
     setLoading(true);
+    // USA /admin/consultas
     const lista = await AdminAPI.agendaDoDia(data, dentistaId || undefined);
-    setItens(lista as AgendaItem[]); 
+    setItens(lista as AgendaItem[]);
     setLoading(false);
   };
+
 
   useEffect(() => {
     carregar();

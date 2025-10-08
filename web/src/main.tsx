@@ -9,6 +9,7 @@ import AdminDentistas from "./pages/AdminDentistas";
 import Booking from "./pages/Booking";
 import Success from "./pages/Success";
 import AdminAgenda from "./pages/AdminAgenda";
+import { ThemeProvider } from "./theme";
 
 const router = createBrowserRouter([
   { path: "/", element: <Navigate to="/admin" replace /> },
@@ -39,8 +40,10 @@ const queryClient = new QueryClient({
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
    <React.StrictMode>
+     <ThemeProvider>
     <QueryClientProvider client={queryClient}>
       <RouterProvider router={router} />
     </QueryClientProvider>
+    </ThemeProvider>
    </React.StrictMode>
 );

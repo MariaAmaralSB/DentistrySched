@@ -25,13 +25,14 @@ export default function Booking() {
   }, []);
 
   const podeBuscar = dentistaId && procedimentoId && data;
+
   useEffect(() => {
     if (!podeBuscar) { setSlots([]); return; }
     setLoadingSlots(true);
     PublicAPI.slots(dentistaId, procedimentoId, data)
       .then(setSlots)
       .finally(() => setLoadingSlots(false));
-  }, [dentistaId, procedimentoId, data]);
+  }, [dentistaId, procedimentoId, data, podeBuscar]);
 
   const submit = async (inicioISO: string) => {
     const dto: CriarConsultaDto = {
@@ -43,7 +44,10 @@ export default function Booking() {
     nav(`/sucesso/${id}`);
   };
 
-  const dataLabel = useMemo(() => data ? format(parseISO(data), "dd/MM/yyyy") : "", [data]);
+  const dataLabel = useMemo(
+    () => (data ? format(parseISO(data), "dd/MM/yyyy") : ""),
+    [data]
+  );
 
   return (
     <div className="min-h-screen flex items-start justify-center pt-14">
@@ -108,7 +112,7 @@ export default function Booking() {
                 <button key={s.horaISO}
                   onClick={() => submit(s.horaISO)}
                   className="border rounded-lg px-3 py-2 hover:bg-gray-100">
-                  {format(new Date(s.horaISO), "HH:mm")}
+                  {format(parseISO(s.horaISO), "HH:mm")}
                 </button>
               ))}
             </div>
