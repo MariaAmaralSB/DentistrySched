@@ -17,6 +17,41 @@ namespace DentistrySched.Infrastructure.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.9");
 
+            modelBuilder.Entity("DentistrySched.Domain.Entities.AgendaData", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly>("Data")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("DentistaId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<TimeOnly?>("ManhaAte")
+                        .HasColumnType("TEXT");
+
+                    b.Property<TimeOnly?>("ManhaDe")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Observacao")
+                        .HasColumnType("TEXT");
+
+                    b.Property<TimeOnly?>("TardeAte")
+                        .HasColumnType("TEXT");
+
+                    b.Property<TimeOnly?>("TardeDe")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DentistaId", "Data")
+                        .IsUnique();
+
+                    b.ToTable("AgendaDatas");
+                });
+
             modelBuilder.Entity("DentistrySched.Domain.Entities.AgendaExcecao", b =>
                 {
                     b.Property<Guid>("Id")
@@ -135,6 +170,26 @@ namespace DentistrySched.Infrastructure.Migrations
                     b.ToTable("Dentistas");
                 });
 
+            modelBuilder.Entity("DentistrySched.Domain.Entities.DentistaProcedimento", b =>
+                {
+                    b.Property<Guid>("DentistaId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("ProcedimentoId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("ProcedimentoId1")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("DentistaId", "ProcedimentoId");
+
+                    b.HasIndex("ProcedimentoId");
+
+                    b.HasIndex("ProcedimentoId1");
+
+                    b.ToTable("DentistaProcedimento", (string)null);
+                });
+
             modelBuilder.Entity("DentistrySched.Domain.Entities.Paciente", b =>
                 {
                     b.Property<Guid>("Id")
@@ -207,6 +262,39 @@ namespace DentistrySched.Infrastructure.Migrations
                         });
 
                     b.Navigation("PreTriagem");
+                });
+
+            modelBuilder.Entity("DentistrySched.Domain.Entities.DentistaProcedimento", b =>
+                {
+                    b.HasOne("DentistrySched.Domain.Entities.Dentista", "Dentista")
+                        .WithMany("DentistaProcedimentos")
+                        .HasForeignKey("DentistaId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("DentistrySched.Domain.Entities.Procedimento", "Procedimento")
+                        .WithMany()
+                        .HasForeignKey("ProcedimentoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("DentistrySched.Domain.Entities.Procedimento", null)
+                        .WithMany("Dentistas")
+                        .HasForeignKey("ProcedimentoId1");
+
+                    b.Navigation("Dentista");
+
+                    b.Navigation("Procedimento");
+                });
+
+            modelBuilder.Entity("DentistrySched.Domain.Entities.Dentista", b =>
+                {
+                    b.Navigation("DentistaProcedimentos");
+                });
+
+            modelBuilder.Entity("DentistrySched.Domain.Entities.Procedimento", b =>
+                {
+                    b.Navigation("Dentistas");
                 });
 #pragma warning restore 612, 618
         }
