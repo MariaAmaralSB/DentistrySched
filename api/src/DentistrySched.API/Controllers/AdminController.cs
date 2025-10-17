@@ -1,4 +1,5 @@
-﻿using DentistrySched.Infrastructure;
+﻿using DentistrySched.Domain.Entities;
+using DentistrySched.Infrastructure;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -131,6 +132,51 @@ public class AdminController : ControllerBase
         await _db.SaveChangesAsync(ct);
         return NoContent();
     }
+    // GET /admin/dentistas/{dentistaId}/procedimentos
+    [HttpGet("dentistas/{dentistaId:guid}/procedimentos")]
+    public async Task<IActionResult> GetProcedimentosDoDentista(Guid dentistaId, CancellationToken ct)
+    {
+        var existe = await _db.Dentistas.AnyAsync(d => d.Id == dentistaId, ct);
+        if (!existe) return NotFound();
+
+        var itens = await _db.DentistasProcedimentos               
+            .Where(dp => dp.DentistaId == dentistaId)
+            .Select(dp => dp.Procedimento)                         
+            .Select(p => new ProcedimentoDto(
+                p.Id, p.Nome, p.DuracaoMin, p.BufferMin))
+            .AsNoTracking()
+            .ToListAsync(ct);
+
+        return Ok(itens);
+    }
+
+
+    // PUT /admin/dentistas/{dentistaId}/procedimentos
+    [HttpPut("dentistas/{dentistaId:guid}/procedimentos")]
+    public async Task<IActionResult> SaveProcedimentosDoDentista(
+        Guid dentistaId, [FromBody] List<Guid> procedimentoIds, CancellationToken ct)
+    {
+        if (!await _db.Dentistas.AnyAsync(d => d.Id == dentistaId, ct))
+            return NotFound();
+
+        var atuais = await _db.DentistasProcedimentos
+            .Where(dp => dp.DentistaId == dentistaId)
+            .ToListAsync(ct);
+
+        _db.DentistasProcedimentos.RemoveRange(atuais);
+
+        var novos = procedimentoIds.Distinct()
+            .Select(pid => new DentistaProcedimento
+            {
+                DentistaId = dentistaId,
+                ProcedimentoId = pid
+            });
+
+        await _db.DentistasProcedimentos.AddRangeAsync(novos, ct);
+        await _db.SaveChangesAsync(ct);
+        return NoContent();
+    }
+
 
     [HttpDelete("procedimentos/{id:guid}")]
     public async Task<IActionResult> DeleteProcedimento(Guid id, CancellationToken ct)
@@ -140,7 +186,6 @@ public class AdminController : ControllerBase
         var exists = await _db.Procedimentos.AnyAsync(p => p.Id == id, ct);
         if (!exists) return NotFound();
 
-        // se houver FK de consultas -> considere checar antes
         await _db.Procedimentos
             .Where(p => p.Id == id)
             .ExecuteDeleteAsync(ct);

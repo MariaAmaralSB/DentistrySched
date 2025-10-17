@@ -1,4 +1,3 @@
-// Program.cs
 using DentistrySched.API;
 using DentistrySched.API.Services;
 using DentistrySched.Application.Interface;
@@ -6,7 +5,6 @@ using DentistrySched.Application.Services;
 using DentistrySched.Domain.Entities;
 using DentistrySched.Infrastructure;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,8 +14,14 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddDbContextPool<AppDbContext>(opt =>
 {
-    var cs = builder.Configuration.GetConnectionString("Default")!;
-    opt.UseSqlite(cs);
+    var cs = builder.Configuration.GetConnectionString("Default")
+             ?? "Host=localhost;Port=5432;Database=dentistry;Username=postgres;Password=postgres";
+
+    AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
+    opt.UseNpgsql(cs);
+    opt.EnableDetailedErrors();
+    opt.EnableSensitiveDataLogging();
 });
 
 builder.Services.AddCors(opt =>
@@ -36,25 +40,19 @@ app.UseCors();
 
 using (var scope = app.Services.CreateScope())
 {
-    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-    try
-    {
-        var created = await db.Database.EnsureCreatedAsync();
-        logger.LogInformation("[DB] EnsureCreated => {created}", created);
+    await db.Database.EnsureCreatedAsync();
 
-        if (!await db.Procedimentos.AsNoTracking().AnyAsync())
-        {
-            db.Procedimentos.Add(new Procedimento { Nome = "Consulta" });
-            await db.SaveChangesAsync();
-            logger.LogInformation("[DB] Seed inserted (Procedimentos).");
-        }
-    }
-    catch (Exception ex)
+    if (!await db.Procedimentos.AsNoTracking().AnyAsync())
     {
-        logger.LogError(ex, "[DB] ERROR on startup");
-        throw;
+        db.Procedimentos.Add(new Procedimento
+        {
+            Nome = "Consulta",
+            DuracaoMin = 40,
+            BufferMin = 10
+        });
+        await db.SaveChangesAsync();
     }
 }
 

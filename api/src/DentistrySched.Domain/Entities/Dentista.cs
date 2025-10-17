@@ -2,7 +2,10 @@
 
 public class Dentista
 {
-    public Guid Id { get; set; } = Guid.NewGuid();
-    public string Nome { get; set; } = string.Empty;
+    public Guid Id { get; set; }
+    public string Nome { get; set; } = "";
     public string? CRO { get; set; }
+
+    public ICollection<DentistaProcedimento> DentistaProcedimentos { get; set; }
+        = new HashSet<DentistaProcedimento>();
 }
