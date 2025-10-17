@@ -19,11 +19,11 @@ builder.Services.AddScoped<ITenantProvider>(sp =>
 {
     var accessor = sp.GetRequiredService<IHttpContextAccessor>();
     if (accessor.HttpContext is not null)
-        return new TenantProvider(accessor);   // fluxo HTTP
-    return new DesignTimeTenantProvider();     // fora de HTTP (seed/background/migrations)
+        return new TenantProvider(accessor);   
+    return new DesignTimeTenantProvider();     
 });
 
-// --- EF Core / Npgsql (scoped; NÃO usar AddDbContextPool aqui) ---
+// --- EF Core / Npgsql  ---
 builder.Services.AddDbContext<AppDbContext>(opt =>
 {
     var cs = builder.Configuration.GetConnectionString("Default")
@@ -53,7 +53,7 @@ app.UseSwagger();
 app.UseSwaggerUI();
 app.UseCors();
 
-// --------- Middleware: resolve TenantId do header (ou default do appsettings) ---------
+// --------- Middleware ---------
 app.Use(async (ctx, next) =>
 {
     var tenantProvider = ctx.RequestServices.GetRequiredService<ITenantProvider>();
@@ -73,7 +73,7 @@ app.Use(async (ctx, next) =>
     await next();
 });
 
-// --------- Seed por tenant (fora de HTTP, sem resolver scoped do root) ----------
+// --------- Seed por tenant  ----------
 using (var scope = app.Services.CreateScope())
 {
     var cfg = scope.ServiceProvider.GetRequiredService<IConfiguration>();
@@ -90,7 +90,7 @@ using (var scope = app.Services.CreateScope())
     if (Guid.TryParse(cfg["Tenants:Default"], out var defTid)) seeds.Add(defTid);
     var extras = cfg.GetSection("Tenants:Extras").Get<string[]>() ?? Array.Empty<string>();
     foreach (var s in extras) if (Guid.TryParse(s, out var g)) seeds.Add(g);
-    if (seeds.Count == 0) seeds.Add(Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")); // fallback dev
+    if (seeds.Count == 0) seeds.Add(Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")); 
 
     foreach (var tid in seeds.Distinct())
     {

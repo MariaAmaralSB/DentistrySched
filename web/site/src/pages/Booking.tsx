@@ -1,16 +1,25 @@
 import { useEffect, useMemo, useState } from "react";
 import { format, parseISO } from "date-fns";
-import { AdminAPI, PublicAPI } from "../api/client";
-import type { Dentista, Procedimento, SlotDto, CriarConsultaDto } from "../api/types";
+import { PublicAPI, setTenantId } from "../api/client";
+import type { Dentista, Procedimento, SlotDto, CriarConsultaDto } from "../api/client";
 import { useNavigate } from "react-router-dom";
 
 export default function Booking() {
   const nav = useNavigate();
+
+  // lê ?tenant=... e salva no localStorage
+  useEffect(() => {
+    const u = new URL(window.location.href);
+    const t = u.searchParams.get("tenant");
+    if (t) setTenantId(t);
+  }, []);
+
   const [dentistas, setDentistas] = useState<Dentista[]>([]);
   const [proceds, setProceds] = useState<Procedimento[]>([]);
   const [dentistaId, setDentistaId] = useState("");
   const [procedimentoId, setProcedimentoId] = useState("");
   const [data, setData] = useState<string>("");
+
   const [slots, setSlots] = useState<SlotDto[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
 
@@ -19,26 +28,43 @@ export default function Booking() {
   const [email, setEmail] = useState("");
   const [descricao, setDescricao] = useState("");
 
+  // carrega dentistas do tenant
   useEffect(() => {
-    AdminAPI.dentistas().then(setDentistas);
-    AdminAPI.procedimentos().then(setProceds);
+    PublicAPI.dentistas()
+      .then(setDentistas)
+      .catch((e) => console.error("Erro ao carregar dentistas", e));
   }, []);
+
+  // carrega procedimentos quando troca o dentista
+  useEffect(() => {
+    if (!dentistaId) { setProceds([]); setProcedimentoId(""); return; }
+    PublicAPI.procedimentos(dentistaId)
+      .then(setProceds)
+      .catch((e) => console.error("Erro ao carregar procedimentos", e));
+  }, [dentistaId]);
 
   const podeBuscar = dentistaId && procedimentoId && data;
 
+  // busca slots
   useEffect(() => {
     if (!podeBuscar) { setSlots([]); return; }
     setLoadingSlots(true);
     PublicAPI.slots(dentistaId, procedimentoId, data)
       .then(setSlots)
+      .catch((e) => console.error("Erro ao carregar slots", e))
       .finally(() => setLoadingSlots(false));
   }, [dentistaId, procedimentoId, data, podeBuscar]);
 
   const submit = async (inicioISO: string) => {
     const dto: CriarConsultaDto = {
-      dentistaId, procedimentoId, inicio: inicioISO,
-      pacienteNome, celularWhatsApp: celular, email, descricao,
-      sintomas: []
+      dentistaId,
+      procedimentoId,
+      inicio: inicioISO,
+      pacienteNome,
+      celularWhatsApp: celular,
+      email,
+      descricao,
+      sintomas: [],
     };
     const id = await PublicAPI.criarConsulta(dto);
     nav(`/sucesso/${id}`);

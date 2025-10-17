@@ -1,0 +1,8 @@
+{
+  "name": "dentistry-site",
+  "scripts": {
+    "dev": "vite --port 5174",
+    "build": "vite build",
+    "preview": "vite preview --port 5174"
+  }
+}

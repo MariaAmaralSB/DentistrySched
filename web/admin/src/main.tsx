@@ -12,8 +12,6 @@ import "./index.css";
 import Layout from "./layout/Layout";
 import Dashboard from "./pages/Dashboard";
 import AdminDentistas from "./pages/AdminDentistas";
-import Booking from "./pages/Booking";
-import Success from "./pages/Success";
 import AdminAgenda from "./pages/AdminAgenda";
 import { ThemeProvider } from "./theme";
 import TenantGate from "./components/TenantGate";
@@ -36,9 +34,6 @@ const router = createBrowserRouter([
       { path: "agenda", element: <AdminAgenda /> },       
     ],
   },
-
-  { path: "/site", element: <Booking /> },
-  { path: "/sucesso/:id", element: <Success /> },
 
   { path: "*", element: <Navigate to="/admin" replace /> },
 ]);
