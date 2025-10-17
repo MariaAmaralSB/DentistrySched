@@ -1,8 +1,9 @@
-﻿namespace DentistrySched.Domain.Entities;
+﻿using DentistrySched.Domain.Common;
 
-public class Paciente
+namespace DentistrySched.Domain.Entities;
+
+public class Paciente : BaseTenantEntity
 {
-    public Guid Id { get; set; } = Guid.NewGuid();
     public string Nome { get; set; } = string.Empty;
     public string CelularWhatsApp { get; set; } = string.Empty;
     public string? Email { get; set; }

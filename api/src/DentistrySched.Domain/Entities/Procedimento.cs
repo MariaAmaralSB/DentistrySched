@@ -1,8 +1,9 @@
-﻿namespace DentistrySched.Domain.Entities;
+﻿using DentistrySched.Domain.Common;
 
-public class Procedimento
+namespace DentistrySched.Domain.Entities;
+
+public class Procedimento : BaseTenantEntity
 {
-    public Guid Id { get; set; }
     public string Nome { get; set; } = "";
     public int DuracaoMin { get; set; }
     public int BufferMin { get; set; }

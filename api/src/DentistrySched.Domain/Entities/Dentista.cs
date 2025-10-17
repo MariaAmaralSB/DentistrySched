@@ -1,6 +1,8 @@
-﻿namespace DentistrySched.Domain.Entities;
+﻿using DentistrySched.Domain.Common;
 
-public class Dentista
+namespace DentistrySched.Domain.Entities;
+
+public class Dentista : BaseEntity
 {
     public Guid Id { get; set; }
     public string Nome { get; set; } = "";

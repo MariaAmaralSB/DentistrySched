@@ -1,10 +1,10 @@
-﻿using DentistrySched.Domain.Enums;
+﻿using DentistrySched.Domain.Common;
+using DentistrySched.Domain.Enums;
 
 namespace DentistrySched.Domain.Entities;
 
-public class Consulta
+public class Consulta : BaseTenantEntity
 {
-    public Guid Id { get; set; } = Guid.NewGuid();
     public Guid DentistaId { get; set; }
     public Guid PacienteId { get; set; }
     public Guid ProcedimentoId { get; set; }

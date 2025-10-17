@@ -1,8 +1,9 @@
-﻿namespace DentistrySched.Domain.Entities;
+﻿using DentistrySched.Domain.Common;
 
-public class AgendaExcecao
+namespace DentistrySched.Domain.Entities;
+
+public class AgendaExcecao : BaseTenantEntity
 {
-    public Guid Id { get; set; } = Guid.NewGuid();
     public Guid DentistaId { get; set; }
     public DateOnly Data { get; set; }
 

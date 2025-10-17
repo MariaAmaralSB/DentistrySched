@@ -1,8 +1,9 @@
-﻿namespace DentistrySched.Domain.Entities;
+﻿using DentistrySched.Domain.Common;
 
-public class AgendaRegra
+namespace DentistrySched.Domain.Entities;
+
+public class AgendaRegra : BaseTenantEntity
 {
-    public Guid Id { get; set; } = Guid.NewGuid();
     public Guid DentistaId { get; set; }
     public DayOfWeek DiaSemana { get; set; }
     public TimeOnly InicioManha { get; set; }

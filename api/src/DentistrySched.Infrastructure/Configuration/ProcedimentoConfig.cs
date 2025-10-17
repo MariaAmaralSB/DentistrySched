@@ -8,6 +8,13 @@ public class ProcedimentoConfig : IEntityTypeConfiguration<Procedimento>
 {
     public void Configure(EntityTypeBuilder<Procedimento> b)
     {
-        b.Property(p => p.Nome).HasMaxLength(120).IsRequired();
+        b.ToTable("Procedimentos");
+        b.HasKey(x => x.Id);
+
+        b.Property(x => x.Nome).HasMaxLength(120).IsRequired();
+
+        b.HasAlternateKey(x => new { x.TenantId, x.Id })
+         .HasName("AK_Procedimentos_TenantId_Id");
     }
 }
+
