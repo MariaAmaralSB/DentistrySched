@@ -1,5 +1,5 @@
 import { NavLink, Outlet, Link } from "react-router-dom";
-import TenantSwitcher from "@/components/TenantSwitcher";
+import TenantSwitcher from "../components/TenantSwitcher";
 
 const API_URL =
   (typeof import.meta !== "undefined" &&

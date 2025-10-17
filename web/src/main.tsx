@@ -31,17 +31,15 @@ const router = createBrowserRouter([
       </TenantGate>
     ),
     children: [
-      { index: true, element: <Dashboard /> },            // /admin
-      { path: "dentistas", element: <AdminDentistas /> }, // /admin/dentistas
-      { path: "agenda", element: <AdminAgenda /> },       // /admin/agenda
+      { index: true, element: <Dashboard /> },            
+      { path: "dentistas", element: <AdminDentistas /> }, 
+      { path: "agenda", element: <AdminAgenda /> },       
     ],
   },
 
-  // público
   { path: "/site", element: <Booking /> },
   { path: "/sucesso/:id", element: <Success /> },
 
-  // fallback 404 simples (opcional)
   { path: "*", element: <Navigate to="/admin" replace /> },
 ]);
 

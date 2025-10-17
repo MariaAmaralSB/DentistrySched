@@ -1,16 +1,13 @@
 import axios from "axios";
 
-// Base da API com fallback (alinhado ao seu .env: 5227)
 const API_BASE =
   (typeof import.meta !== "undefined" &&
     import.meta.env &&
     (import.meta.env.VITE_API as string)) ||
   "http://localhost:5227";
 
-// Cria instância do axios
 const api = axios.create({ baseURL: API_BASE });
 
-// Função segura p/ rodar no browser apenas (evita erro no build/SSR)
 function safeGetTenantId(): string {
   const fallback = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
   if (typeof window === "undefined") return fallback;
@@ -21,22 +18,18 @@ function safeGetTenantId(): string {
   }
 }
 
-/** Lê o tenant atual (browser-safe) */
 export function getTenantId() {
   return safeGetTenantId();
 }
 
-/** Define o tenant atual no localStorage (browser-only) */
 export function setTenantId(id: string) {
   if (typeof window === "undefined") return;
   try {
     localStorage.setItem("tenantId", id);
   } catch {
-    /* ignore */
   }
 }
 
-// Interceptor: injeta o tenant em toda request
 api.interceptors.request.use((config) => {
   const tid = safeGetTenantId();
   config.headers = config.headers ?? {};
