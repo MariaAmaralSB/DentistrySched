@@ -1,8 +1,52 @@
 import axios from "axios";
 
-const api = axios.create({ baseURL: import.meta.env.VITE_API });
+// Base da API com fallback (alinhado ao seu .env: 5227)
+const API_BASE =
+  (typeof import.meta !== "undefined" &&
+    import.meta.env &&
+    (import.meta.env.VITE_API as string)) ||
+  "http://localhost:5227";
+
+// Cria instância do axios
+const api = axios.create({ baseURL: API_BASE });
+
+// Função segura p/ rodar no browser apenas (evita erro no build/SSR)
+function safeGetTenantId(): string {
+  const fallback = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
+  if (typeof window === "undefined") return fallback;
+  try {
+    return localStorage.getItem("tenantId") || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+/** Lê o tenant atual (browser-safe) */
+export function getTenantId() {
+  return safeGetTenantId();
+}
+
+/** Define o tenant atual no localStorage (browser-only) */
+export function setTenantId(id: string) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem("tenantId", id);
+  } catch {
+    /* ignore */
+  }
+}
+
+// Interceptor: injeta o tenant em toda request
+api.interceptors.request.use((config) => {
+  const tid = safeGetTenantId();
+  config.headers = config.headers ?? {};
+  (config.headers as any)["X-Tenant-Id"] = tid;
+  return config;
+});
+
 export default api;
 
+/* ------------------ Tipos ------------------ */
 export type ConsultaDia = {
   id: string;
   hora: string;
@@ -19,9 +63,9 @@ export type DiaMesStatus = {
 
 export type ExcecaoDia = {
   dentistaId: string;
-  data: string;                 
+  data: string;
   fechadoDiaTodo?: boolean;
-  abrirManhaDe?: string | null; 
+  abrirManhaDe?: string | null;
   abrirManhaAte?: string | null;
   abrirTardeDe?: string | null;
   abrirTardeAte?: string | null;
@@ -37,8 +81,8 @@ export type AgendaDiaResp = {
 };
 
 export type AgendaDataView = {
-  data: string;       
-  manhaDe?: string | null;  
+  data: string;
+  manhaDe?: string | null;
   manhaAte?: string | null;
   tardeDe?: string | null;
   tardeAte?: string | null;
@@ -46,7 +90,7 @@ export type AgendaDataView = {
 };
 
 export type AgendaDataUpsert = {
-  data: string;             
+  data: string;
   manhaDe?: string | null;
   manhaAte?: string | null;
   tardeDe?: string | null;
@@ -55,8 +99,8 @@ export type AgendaDataUpsert = {
 };
 
 export type AgendaRegraUpsertDto = {
-  diaSemana: number;            
-  inicioManha?: string | null;  
+  diaSemana: number;
+  inicioManha?: string | null;
   fimManha?: string | null;
   inicioTarde?: string | null;
   fimTarde?: string | null;
@@ -71,27 +115,41 @@ export type Procedimento = {
 
 export type SlotDto = { horaISO: string };
 
+/* ------------------ APIs ------------------ */
 export const PublicAPI = {
-  slots: async (dentistaId: string, procedimentoId: string, dataISO: string): Promise<SlotDto[]> => {
-    const r = await api.get("/public/slots", { params: { dentistaId, procedimentoId, data: dataISO } });
+  slots: async (
+    dentistaId: string,
+    procedimentoId: string,
+    dataISO: string
+  ): Promise<SlotDto[]> => {
+    const r = await api.get("/public/slots", {
+      params: { dentistaId, procedimentoId, data: dataISO },
+    });
 
     const raw = Array.isArray(r.data)
       ? r.data
-      : (Array.isArray(r.data?.slots) ? r.data.slots : []);
+      : Array.isArray(r.data?.slots)
+      ? r.data.slots
+      : [];
 
     const pickRawHora = (x: any) =>
-      x?.horaISO ?? x?.HoraISO ?? x?.horaIso ??
-      x?.inicioISO ?? x?.InicioISO ??
-      x?.hora ?? x?.Hora ??
-      x?.inicio ?? x?.Inicio ??
+      x?.horaISO ??
+      x?.HoraISO ??
+      x?.horaIso ??
+      x?.inicioISO ??
+      x?.InicioISO ??
+      x?.hora ??
+      x?.Hora ??
+      x?.inicio ??
+      x?.Inicio ??
       (typeof x === "string" ? x : null);
 
     const toISO = (data: string, t: string): string => {
       if (!t) return t;
-      if (t.includes("T")) return t;              
+      if (t.includes("T")) return t;
       const hhmm = t.trim();
       if (/^\d{2}:\d{2}$/.test(hhmm)) return `${data}T${hhmm}:00`;
-      return t; 
+      return t;
     };
 
     return raw
@@ -103,27 +161,30 @@ export const PublicAPI = {
       .filter(Boolean) as SlotDto[];
   },
 
-  criarConsulta: async (dto: any) => {
-    const r = await api.post("/public/consultas", dto);
-    return r.data as string;
-  },
+  criarConsulta: async (dto: any) =>
+    (await api.post("/public/consultas", dto)).data as string,
 };
 
-
 const normalizaRegras = (regras: AgendaRegraUpsertDto[]) =>
-  (regras ?? []).map(r => ({ ...r, diaSemana: r.diaSemana === 7 ? 0 : r.diaSemana }));
+  (regras ?? []).map((r) => ({
+    ...r,
+    diaSemana: r.diaSemana === 7 ? 0 : r.diaSemana,
+  }));
 
 export const AdminAPI = {
   dentistas: async () => {
     const r = await api.get("/admin/dentistas");
     return Array.isArray(r.data) ? r.data : [];
   },
+
   criarDentista: async (dto: { nome: string; cro?: string }) => {
     await api.post("/admin/dentistas", dto);
   },
+
   atualizarDentista: async (id: string, dto: { nome: string; cro?: string }) => {
     await api.put(`/admin/dentistas/${id}`, dto);
   },
+
   removerDentista: async (id: string) => {
     await api.delete(`/admin/dentistas/${id}`);
   },
@@ -136,11 +197,17 @@ export const AdminAPI = {
     return [];
   },
 
-  procedimentosDoDentista: async (dentistaId: string): Promise<Procedimento[]> => {
+  procedimentosDoDentista: async (
+    dentistaId: string
+  ): Promise<Procedimento[]> => {
     const r = await api.get(`/admin/dentistas/${dentistaId}/procedimentos`);
     return Array.isArray(r.data) ? r.data : [];
   },
-  salvarProcedimentosDoDentista: async (dentistaId: string, procedimentoIds: string[]) => {
+
+  salvarProcedimentosDoDentista: async (
+    dentistaId: string,
+    procedimentoIds: string[]
+  ) => {
     await api.put(`/admin/dentistas/${dentistaId}/procedimentos`, procedimentoIds);
   },
 
@@ -149,16 +216,30 @@ export const AdminAPI = {
     const r = await api.get("/admin/agenda-regras", { params: { dentistaId } });
     return Array.isArray(r.data) ? r.data : [];
   },
-  salvarAgendaRegras: async (dentistaId: string, regras: AgendaRegraUpsertDto[]) => {
+
+  salvarAgendaRegras: async (
+    dentistaId: string,
+    regras: AgendaRegraUpsertDto[]
+  ) => {
     await api.put(`/admin/agenda-regras/${dentistaId}`, normalizaRegras(regras));
   },
-  criarOuAtualizarDiasAgenda: async (dentistaId: string, regras: AgendaRegraUpsertDto[]) => {
+
+  criarOuAtualizarDiasAgenda: async (
+    dentistaId: string,
+    regras: AgendaRegraUpsertDto[]
+  ) => {
     await api.post(`/admin/agenda-regras/${dentistaId}`, normalizaRegras(regras));
   },
 
-  agendaMesStatus: async (dentistaId: string, ano: number, mes: number): Promise<DiaMesStatus[]> => {
+  agendaMesStatus: async (
+    dentistaId: string,
+    ano: number,
+    mes: number
+  ): Promise<DiaMesStatus[]> => {
     if (!dentistaId) return [];
-    const r = await api.get("/admin/agenda-regras/mes", { params: { dentistaId, ano, mes } });
+    const r = await api.get("/admin/agenda-regras/mes", {
+      params: { dentistaId, ano, mes },
+    });
     return Array.isArray(r.data) ? r.data : [];
   },
 
@@ -169,11 +250,19 @@ export const AdminAPI = {
     return Array.isArray(r.data) ? r.data : [];
   },
 
-  agendaDia: async (dentistaId: string, dataISO: string, procedimentoId?: string, signal?: AbortSignal) => {
+  agendaDia: async (
+    dentistaId: string,
+    dataISO: string,
+    procedimentoId?: string,
+    signal?: AbortSignal
+  ) => {
     const params: any = { dentistaId, data: dataISO };
     if (procedimentoId) params.procedimentoId = procedimentoId;
     try {
-      const r = await api.get<AgendaDiaResp>("/admin/agenda-dia", { params, signal });
+      const r = await api.get<AgendaDiaResp>("/admin/agenda-dia", {
+        params,
+        signal,
+      });
       const d = r.data;
       if (Array.isArray(d?.slots)) return d.slots;
       if (Array.isArray(d as any)) return d as any;
@@ -184,9 +273,14 @@ export const AdminAPI = {
     }
   },
 
-  getExcecaoDia: async (dentistaId: string, dataISO: string): Promise<ExcecaoDia | null> => {
+  getExcecaoDia: async (
+    dentistaId: string,
+    dataISO: string
+  ): Promise<ExcecaoDia | null> => {
     try {
-      const r = await api.get("/admin/agenda-excecao", { params: { dentistaId, data: dataISO } });
+      const r = await api.get("/admin/agenda-excecao", {
+        params: { dentistaId, data: dataISO },
+      });
       return r.data ?? null;
     } catch (err: any) {
       if (err?.response?.status === 404) return null;
@@ -194,16 +288,22 @@ export const AdminAPI = {
       return null;
     }
   },
+
   salvarExcecaoDia: async (ex: ExcecaoDia) => {
     await api.put("/admin/agenda-excecao", ex);
   },
+
   removerExcecaoDia: async (dentistaId: string, dataISO: string) => {
-    await api.delete("/admin/agenda-excecao", { params: { dentistaId, data: dataISO } });
+    await api.delete(`/admin/agenda-excecao`, {
+      params: { dentistaId, data: dataISO },
+    });
   },
 
   getAgendaDatas: async (dentistaId: string, ano: number, mes: number) => {
     if (!dentistaId) return [] as AgendaDataView[];
-    const r = await api.get("/admin/agenda-datas", { params: { dentistaId, ano, mes } });
+    const r = await api.get("/admin/agenda-datas", {
+      params: { dentistaId, ano, mes },
+    });
     return Array.isArray(r.data) ? (r.data as AgendaDataView[]) : [];
   },
 

@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
+using DentistrySched.Infrastructure.Tenancy;
 
 namespace DentistrySched.Infrastructure;
 
@@ -18,6 +19,7 @@ public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<AppDbConte
             npgsql.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName);
         });
 
-        return new AppDbContext(builder.Options);
+        var tenant = new DesignTimeTenantProvider(); 
+        return new AppDbContext(builder.Options, tenant);
     }
 }

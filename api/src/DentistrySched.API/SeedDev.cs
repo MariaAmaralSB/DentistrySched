@@ -1,5 +1,4 @@
-﻿using DentistrySched.Domain;
-using DentistrySched.Domain.Entities;
+﻿using DentistrySched.Domain.Entities;
 using DentistrySched.Infrastructure;
 
 namespace DentistrySched.API;
