@@ -1,6 +1,5 @@
 import axios from "axios";
 
-// -------- Base da API (env -> fallback localhost) --------
 const API_BASE =
   (typeof import.meta !== "undefined" &&
     import.meta.env &&
@@ -9,7 +8,6 @@ const API_BASE =
 
 const api = axios.create({ baseURL: API_BASE });
 
-// -------- Tenant helpers --------
 function safeGetTenantId(): string {
   const fallback = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
   if (typeof window === "undefined") return fallback;
@@ -25,7 +23,6 @@ export function setTenantId(id: string) {
   try { localStorage.setItem("tenantId", id); } catch {}
 }
 
-// Injeta X-Tenant-Id em toda request
 api.interceptors.request.use((config) => {
   const tid = safeGetTenantId();
   config.headers = config.headers ?? {};
@@ -35,7 +32,6 @@ api.interceptors.request.use((config) => {
 
 export default api;
 
-// -------- Tipos usados pelo site --------
 export type Dentista = { id: string; nome: string; cro?: string | null };
 export type Procedimento = { id: string; nome: string; duracaoMin: number; bufferMin: number };
 export type SlotDto = { horaISO: string };
@@ -51,25 +47,18 @@ export type CriarConsultaDto = {
   sintomas: string[];
 };
 
-// -------- API pública --------
 export const PublicAPI = {
-  // lista de dentistas do tenant atual
   dentistas: async (): Promise<Dentista[]> => {
-    // use /public/dentistas se você tiver esse endpoint;
-    // senão, /admin/dentistas funciona do mesmo jeito no projeto atual
     const r = await api.get("/admin/dentistas");
     return Array.isArray(r.data) ? r.data : [];
   },
 
-  // procedimentos do dentista
   procedimentos: async (dentistaId: string): Promise<Procedimento[]> => {
     if (!dentistaId) return [];
-    // idem: /public/procedimentos?dentistaId=... se existir, senão:
     const r = await api.get(`/admin/dentistas/${dentistaId}/procedimentos`);
     return Array.isArray(r.data) ? r.data : [];
   },
 
-  // slots disponíveis
   slots: async (dentistaId: string, procedimentoId: string, dataISO: string): Promise<SlotDto[]> => {
     const r = await api.get("/public/slots", { params: { dentistaId, procedimentoId, data: dataISO } });
 
@@ -101,7 +90,6 @@ export const PublicAPI = {
       .filter(Boolean) as SlotDto[];
   },
 
-  // cria a consulta
   criarConsulta: async (dto: CriarConsultaDto): Promise<string> => {
     const r = await api.post("/public/consultas", dto);
     return r.data as string;

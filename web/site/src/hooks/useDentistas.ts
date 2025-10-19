@@ -1,32 +1,24 @@
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { AdminAPI } from "../api/client";
 
 export type Dentista = { id: string; nome: string; cro?: string };
 
-export function useDentistas() {
-  const [list, setList] = useState<Dentista[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<unknown>(null);
-
-  const refresh = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await AdminAPI.dentistas();
-      // normaliza (id, nome, cro)
-      const arr = (data ?? []).map((d: any) => ({
-        id: d.id ?? d.Id ?? d.guid ?? "",
-        nome: d.nome ?? d.Nome ?? "",
-        cro: d.cro ?? d.CRO ?? d.croNumber ?? undefined,
-      }));
-      setList(arr);
-    } catch (e) {
-      setError(e);
-    } finally {
-      setLoading(false);
-    }
+function normalizeDentista(x: any): Dentista {
+  return {
+    id: x?.id ?? x?.Id ?? x?.guid ?? "",
+    nome: x?.nome ?? x?.Nome ?? "",
+    cro: x?.cro ?? x?.CRO ?? x?.croNumber ?? undefined,
   };
+}
 
-  useEffect(() => { refresh(); }, []);
-  return { list, loading, error, refresh };
+export function useDentistas() {
+  return useQuery({
+    queryKey: ["dentistas"],
+    queryFn: async (): Promise<Dentista[]> => {
+      const data = await AdminAPI.dentistas();
+      return (Array.isArray(data) ? data : []).map(normalizeDentista);
+    },
+    staleTime: 60_000,
+    retry: 1,
+  });
 }
