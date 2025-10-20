@@ -45,6 +45,18 @@ builder.Services.AddCors(opt =>
 // --- App services ---
 builder.Services.AddScoped<ISlotService, SlotService>();
 builder.Services.AddHostedService<ConsultaReminderService>();
+// SMTP (appsettings section "Smtp")
+builder.Services.Configure<SmtpOptions>(builder.Configuration.GetSection("Smtp"));
+
+// Senders
+builder.Services.AddScoped<IEmailSender, EmailSender>();
+builder.Services.AddScoped<ISmsSender, FakeSmsSender>();
+
+// WhatsApp desabilitado por padrão (placeholder). Quando tiver WABA, troque aqui.
+builder.Services.AddScoped<IWhatsAppSender, NullWhatsAppSender>();
+
+// Orquestrador
+builder.Services.AddScoped<INotificationSender, NotificationSender>();
 
 var app = builder.Build();
 

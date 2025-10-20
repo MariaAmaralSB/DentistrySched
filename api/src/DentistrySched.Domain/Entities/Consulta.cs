@@ -13,4 +13,7 @@ public class Consulta : BaseTenantEntity
     public ConsultaStatus Status { get; set; } = ConsultaStatus.Agendada;
 
     public PreTriagem? PreTriagem { get; set; }
+    public Dentista? Dentista { get; set; }
+    public Paciente? Paciente { get; set; }
+    public Procedimento? Procedimento { get; set; }
 }

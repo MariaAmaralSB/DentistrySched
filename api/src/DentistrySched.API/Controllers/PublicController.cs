@@ -14,11 +14,13 @@ public class PublicController : ControllerBase
 {
     private readonly ISlotService _slots;
     private readonly AppDbContext _db;
+    private readonly INotificationSender _notify;
 
-    public PublicController(ISlotService slots, AppDbContext db)
+    public PublicController(ISlotService slots, AppDbContext db, INotificationSender notify)
     {
         _slots = slots;
         _db = db;
+        _notify = notify;
     }
 
     [HttpGet("slots")]
@@ -138,6 +140,12 @@ public class PublicController : ControllerBase
 
         _db.Consultas.Add(consulta);
         await _db.SaveChangesAsync(ct);
+        await _notify.SendConfirmationAsync(
+            to: paciente.CelularWhatsApp ?? paciente.Email ?? "",  // escolha seu “to” preferido
+            inicio: consulta.Inicio,
+            dentista: await _db.Dentistas.Where(d => d.Id == consulta.DentistaId).Select(d => d.Nome).FirstOrDefaultAsync(ct),
+            consultaId: consulta.Id,
+            ct: ct);
 
         return Ok(consulta.Id);
     }
@@ -151,6 +159,13 @@ public class PublicController : ControllerBase
 
         consulta.Status = ConsultaStatus.Confirmada;
         await _db.SaveChangesAsync(ct);
+        await _notify.SendConfirmationAsync(
+            to: consulta.Paciente?.CelularWhatsApp ?? consulta.Paciente?.Email ?? "",
+            inicio: consulta.Inicio,
+            dentista: consulta.Dentista?.Nome,
+            consultaId: consulta.Id,
+            ct: ct
+        );
         return NoContent();
     }
 
@@ -164,6 +179,9 @@ public class PublicController : ControllerBase
         {
             consulta.Status = ConsultaStatus.Cancelada;
             await _db.SaveChangesAsync(ct);
+            await _notify.SendCancellationAsync(
+                to: consulta.Paciente?.CelularWhatsApp ?? consulta.Paciente?.Email ?? "",
+                inicio: consulta.Inicio, ct: ct);
         }
         return NoContent();
     }
@@ -193,6 +211,10 @@ public class PublicController : ControllerBase
         consulta.Status = ConsultaStatus.Remarcada;
 
         await _db.SaveChangesAsync(ct);
+        await _notify.SendRescheduleAsync(
+            to: consulta.Paciente?.CelularWhatsApp ?? consulta.Paciente?.Email ?? "",
+            novoInicio: consulta.Inicio,
+            dentista: consulta.Dentista?.Nome, ct: ct);
         return NoContent();
     }
 }
