@@ -26,8 +26,7 @@ export function setTenantId(id: string) {
   if (typeof window === "undefined") return;
   try {
     localStorage.setItem("tenantId", id);
-  } catch {
-  }
+  } catch {}
 }
 
 api.interceptors.request.use((config) => {
@@ -107,6 +106,17 @@ export type Procedimento = {
 };
 
 export type SlotDto = { horaISO: string };
+
+export type RetornoSugestaoDto = {
+  dia: string;                
+  horarios: string[];         
+};
+
+export type CriarRetornoDto = {
+  dentistaId?: string;        
+  procedimentoId?: string;    
+  inicio: string;             
+};
 
 /* ------------------ APIs ------------------ */
 export const PublicAPI = {
@@ -307,5 +317,26 @@ export const AdminAPI = {
   removerAgendaData: async (dentistaId: string, dataISO: string) => {
     const [y, m, d] = dataISO.split("-").map(Number);
     await api.delete(`/admin/agenda-datas/${dentistaId}/${y}-${m}-${d}`);
+  },
+
+  retornoSugestoes: async (
+    consultaId: string,
+    dias?: number[]
+  ): Promise<RetornoSugestaoDto[]> => {
+    const r = await api.get(`/admin/consultas/${consultaId}/retorno-sugestoes`, {
+      params: dias && dias.length ? { dias: dias.join(",") } : undefined,
+    });
+    const arr = Array.isArray(r.data) ? r.data : [];
+    return arr.map((x: any) => ({
+      dia: x?.dia ?? x?.Dia ?? x?.data ?? "",
+      horarios: Array.isArray(x?.horarios ?? x?.Horarios)
+        ? (x?.horarios ?? x?.Horarios)
+        : [],
+    }));
+  },
+
+  criarRetorno: async (consultaId: string, payload: CriarRetornoDto) => {
+    const r = await api.post(`/admin/consultas/${consultaId}/retorno`, payload);
+    return (r.data as string) ?? "";
   },
 };

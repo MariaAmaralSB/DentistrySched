@@ -11,6 +11,10 @@ public class Consulta : BaseTenantEntity
     public DateTime Inicio { get; set; }
     public DateTime Fim { get; set; }
     public ConsultaStatus Status { get; set; } = ConsultaStatus.Agendada;
+    public bool IsRetorno { get; set; }            
+    public Guid? ConsultaOrigemId { get; set; }    
+    public Consulta? ConsultaOrigem { get; set; }  
+
 
     public PreTriagem? PreTriagem { get; set; }
 }

@@ -3,11 +3,9 @@ import {
   AdminAPI,
   DiaMesStatus,
   ExcecaoDia,
-  ConsultaDia,
-  AgendaRegraUpsertDto,
 } from "../api/client";
+import RetornoModal from "../components/RetornoModal";
 
-/** Tipos locais */
 type Dentista = { id: string; nome: string; cro?: string };
 type DiaResumo = { dia: number };
 
@@ -19,6 +17,19 @@ const isoDate = (y: number, m: number, d: number) =>
 const formatISOToBR = (iso: string) => {
   const [yy, mm, dd] = iso.split("-");
   return `${dd}/${mm}/${yy}`;
+};
+
+type AgendaItem = {
+  id: string;
+  inicio: string;
+  fim: string;
+  status: number;
+  dentistaId: string;
+  dentistaNome: string;
+  pacienteId: string;
+  pacienteNome: string;
+  procedimentoId: string;
+  procedimentoNome: string;
 };
 
 type RegraSemana = {
@@ -38,7 +49,6 @@ const vazioRegra = (diaSemana: number): RegraSemana => ({
 });
 
 export default function AdminAgenda() {
-  // ---------------- Dentistas ----------------
   const [dentistas, setDentistas] = useState<Dentista[]>([]);
   const [dentistaId, setDentistaId] = useState("");
   const dentistaIdVal = dentistaId || dentistas[0]?.id || "";
@@ -49,16 +59,13 @@ export default function AdminAgenda() {
       setDentistas(ds);
       if (!dentistaId && ds.length) setDentistaId(ds[0].id);
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ---------------- Regras semanais ----------------
   const [regras, setRegras] = useState<RegraSemana[]>(
     Array.from({ length: 7 }, (_, d) => vazioRegra(d))
   );
   const [salvandoRegras, setSalvandoRegras] = useState(false);
 
-  // estado de exibir/recolher (salvo no localStorage)
   const [showRegras, setShowRegras] = useState<boolean>(() => {
     const v = localStorage.getItem("agenda:showRegras");
     return v ? v === "1" : false;
@@ -67,12 +74,10 @@ export default function AdminAgenda() {
     localStorage.setItem("agenda:showRegras", showRegras ? "1" : "0");
   }, [showRegras]);
 
-  // carrega regras existentes ao trocar de dentista
   useEffect(() => {
     (async () => {
       if (!dentistaIdVal) return;
       const r = await AdminAPI.getAgendaRegras(dentistaIdVal);
-
       const base = Array.from({ length: 7 }, (_, d) => vazioRegra(d));
       for (const it of (r as any[]) ?? []) {
         const d = (it?.diaSemana ?? 0) as number;
@@ -117,10 +122,8 @@ export default function AdminAgenda() {
     if (!dentistaIdVal) return;
     setSalvandoRegras(true);
     try {
-      const payload: AgendaRegraUpsertDto[] = regras
-        .filter(
-          (r) => (r.inicioManha && r.fimManha) || (r.inicioTarde && r.fimTarde)
-        )
+      const payload = regras
+        .filter((r) => (r.inicioManha && r.fimManha) || (r.inicioTarde && r.fimTarde))
         .map((r) => ({
           diaSemana: r.diaSemana,
           inicioManha: r.inicioManha ?? null,
@@ -134,7 +137,6 @@ export default function AdminAgenda() {
     }
   };
 
-  // ---------------- Mês / calendário ----------------
   const hoje = new Date();
   const [ano, setAno] = useState(hoje.getFullYear());
   const [mes, setMes] = useState(hoje.getMonth() + 1);
@@ -158,7 +160,6 @@ export default function AdminAgenda() {
     setDiaData([]);
   };
 
-  // ---------------- Status leve do mês ----------------
   const [mesStatus, setMesStatus] = useState<DiaMesStatus[]>([]);
   useEffect(() => {
     (async () => {
@@ -174,9 +175,8 @@ export default function AdminAgenda() {
     return m;
   }, [mesStatus]);
 
-  // ---------------- Dia selecionado / slots ----------------
   const [diaSelecionado, setDiaSelecionado] = useState<number | undefined>();
-  const [diaData, setDiaData] = useState<ConsultaDia[] | any>([]);
+  const [diaData, setDiaData] = useState<AgendaItem[]>([]);
   const [loadingDia, setLoadingDia] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -191,19 +191,13 @@ export default function AdminAgenda() {
 
     try {
       const dataISO = isoDate(ano, mes, d);
-      const resp = await AdminAPI.agendaDia(dentistaIdVal, dataISO);
-      const slots = Array.isArray((resp as any)?.slots)
-        ? (resp as any).slots
-        : Array.isArray(resp)
-        ? resp
-        : [];
-      setDiaData(slots);
+      const items = await AdminAPI.agendaDoDia(dataISO, dentistaIdVal);
+      setDiaData(items as AgendaItem[]);
     } finally {
       setLoadingDia(false);
     }
   };
 
-  // ---------------- Modal de exceção ----------------
   const [showModal, setShowModal] = useState(false);
   const [ex, setEx] = useState<ExcecaoDia | null>(null);
 
@@ -282,9 +276,13 @@ export default function AdminAgenda() {
     return s.motivo ? `${label} • ${s.motivo}` : label;
   };
 
-  // =======================================================================
-  // RENDER
-  // =======================================================================
+  const [retOpen, setRetOpen] = useState(false);
+  const [retConsulta, setRetConsulta] = useState<AgendaItem | null>(null);
+  function abrirRetorno(c: AgendaItem) {
+    setRetConsulta(c);
+    setRetOpen(true);
+  }
+
   return (
     <div className="space-y-6 text-slate-800">
       {/* HEADER */}
@@ -316,7 +314,7 @@ export default function AdminAgenda() {
         </div>
       </div>
 
-      {/* REGRAS SEMANAIS (colapsável) */}
+      {/* REGRAS SEMANAIS */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100">
         <div className="flex items-center justify-between px-4 py-3">
           <button
@@ -327,10 +325,7 @@ export default function AdminAgenda() {
             aria-controls="regras-semanais-body"
             title={showRegras ? "Recolher regras semanais" : "Expandir regras semanais"}
           >
-            <span
-              className="inline-flex size-6 items-center justify-center rounded-lg border border-slate-200 text-slate-600
-                         group-hover:bg-slate-50 transition"
-            >
+            <span className="inline-flex size-6 items-center justify-center rounded-lg border border-slate-200 text-slate-600 group-hover:bg-slate-50 transition">
               {showRegras ? "–" : "+"}
             </span>
             <span className="font-medium">Regras semanais (manhã/tarde)</span>
@@ -475,10 +470,7 @@ export default function AdminAgenda() {
               <div className="text-lg font-semibold">
                 Abrir agenda — {formatISOToBR(ex.data)}
               </div>
-              <button
-                className="border rounded px-3 py-1"
-                onClick={() => setShowModal(false)}
-              >
+              <button className="border rounded px-3 py-1" onClick={() => setShowModal(false)}>
                 Fechar
               </button>
             </div>
@@ -493,28 +485,17 @@ export default function AdminAgenda() {
                   />
                   Fechar dia todo
                 </label>
-                <span className="text-xs text-gray-500">
-                  (ignora horários abaixo)
-                </span>
+                <span className="text-xs text-gray-500">(ignora horários abaixo)</span>
               </div>
 
               <div className="flex flex-wrap gap-2">
-                <button
-                  className="text-sm border rounded px-3 py-1"
-                  onClick={() => setPresetEx("manha")}
-                >
+                <button className="text-sm border rounded px-3 py-1" onClick={() => setPresetEx("manha")}>
                   Manhã 08–12
                 </button>
-                <button
-                  className="text-sm border rounded px-3 py-1"
-                  onClick={() => setPresetEx("tarde")}
-                >
+                <button className="text-sm border rounded px-3 py-1" onClick={() => setPresetEx("tarde")}>
                   Tarde 14–18
                 </button>
-                <button
-                  className="text-sm border rounded px-3 py-1"
-                  onClick={() => setPresetEx("comercial")}
-                >
+                <button className="text-sm border rounded px-3 py-1" onClick={() => setPresetEx("comercial")}>
                   Comercial 08–12 / 14–18
                 </button>
                 <button
@@ -541,18 +522,14 @@ export default function AdminAgenda() {
                       type="time"
                       className="border rounded p-1"
                       value={ex.abrirManhaDe ?? ""}
-                      onChange={(e) =>
-                        setEx({ ...ex, abrirManhaDe: e.target.value || null })
-                      }
+                      onChange={(e) => setEx({ ...ex, abrirManhaDe: e.target.value || null })}
                     />
                     <span>–</span>
                     <input
                       type="time"
                       className="border rounded p-1"
                       value={ex.abrirManhaAte ?? ""}
-                      onChange={(e) =>
-                        setEx({ ...ex, abrirManhaAte: e.target.value || null })
-                      }
+                      onChange={(e) => setEx({ ...ex, abrirManhaAte: e.target.value || null })}
                     />
                   </div>
                 </div>
@@ -564,27 +541,21 @@ export default function AdminAgenda() {
                       type="time"
                       className="border rounded p-1"
                       value={ex.abrirTardeDe ?? ""}
-                      onChange={(e) =>
-                        setEx({ ...ex, abrirTardeDe: e.target.value || null })
-                      }
+                      onChange={(e) => setEx({ ...ex, abrirTardeDe: e.target.value || null })}
                     />
                     <span>–</span>
                     <input
                       type="time"
                       className="border rounded p-1"
                       value={ex.abrirTardeAte ?? ""}
-                      onChange={(e) =>
-                        setEx({ ...ex, abrirTardeAte: e.target.value || null })
-                      }
+                      onChange={(e) => setEx({ ...ex, abrirTardeAte: e.target.value || null })}
                     />
                   </div>
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm text-gray-600 mb-1">
-                  Motivo (opcional)
-                </label>
+                <label className="block text-sm text-gray-600 mb-1">Motivo (opcional)</label>
                 <input
                   className="border rounded w-full p-2"
                   value={ex.motivo ?? ""}
@@ -596,10 +567,7 @@ export default function AdminAgenda() {
                 <button className="border rounded px-3 py-1" onClick={limparExcecao}>
                   Remover exceção
                 </button>
-                <button
-                  className="border rounded px-3 py-1 bg-blue-600 text-white"
-                  onClick={salvarExcecao}
-                >
+                <button className="border rounded px-3 py-1 bg-blue-600 text-white" onClick={salvarExcecao}>
                   Salvar
                 </button>
               </div>
@@ -607,38 +575,48 @@ export default function AdminAgenda() {
               <div className="border-t pt-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="font-medium">Consultas do dia</div>
-                  {loadingDia && (
-                    <div className="text-sm text-gray-500">Carregando…</div>
-                  )}
+                  {loadingDia && <div className="text-sm text-gray-500">Carregando…</div>}
                 </div>
 
                 {Array.isArray(diaData) && diaData.length > 0 ? (
                   <div className="grid sm:grid-cols-2 gap-3">
-                    {diaData.map((it: ConsultaDia, idx: number) => (
+                    {diaData.map((it) => (
                       <div
-                        key={it.id ?? `${it.hora}-${idx}`}
+                        key={it.id}
                         className="flex items-center justify-between border rounded-xl px-3 py-2 bg-gray-50 hover:bg-gray-100 transition"
                       >
                         <div className="flex items-center gap-3">
                           <div className="text-base font-semibold tabular-nums">
-                            {it.hora}
+                            {new Date(it.inicio).toLocaleTimeString("pt-BR", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
                           </div>
                           <div className="text-sm">
-                            <div className="font-medium">{it.paciente}</div>
-                            <div className="text-gray-500">{it.procedimento}</div>
+                            <div className="font-medium">{it.pacienteNome}</div>
+                            <div className="text-gray-500">{it.procedimentoNome}</div>
                           </div>
                         </div>
-                        <span
-                          className={
-                            "text-[11px] px-2 py-0.5 rounded-full " +
-                            (it.status
-                              ? "bg-red-100 text-red-700"
-                              : "bg-emerald-100 text-emerald-700")
-                          }
-                          title={it.status ? "Ocupado" : "Livre"}
-                        >
-                          {it.status ? "ocupado" : "livre"}
-                        </span>
+
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={
+                              "text-[11px] px-2 py-0.5 rounded-full " +
+                              (it.status ? "bg-red-100 text-red-700" : "bg-emerald-100 text-emerald-700")
+                            }
+                            title={it.status ? "Ocupado" : "Livre"}
+                          >
+                            {it.status ? "ocupado" : "livre"}
+                          </span>
+
+                          <button
+                            className="text-xs border rounded px-2 py-1 hover:bg-white"
+                            onClick={() => abrirRetorno(it)}
+                            title="Agendar retorno para esta consulta"
+                          >
+                            Retorno
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -650,6 +628,28 @@ export default function AdminAgenda() {
           </div>
         </div>
       )}
+
+      {/* MODAL DE RETORNO */}
+      <RetornoModal
+        open={retOpen}
+        consulta={
+          retConsulta
+            ? {
+                id: retConsulta.id,
+                dentistaId: retConsulta.dentistaId,
+                dentistaNome: retConsulta.dentistaNome,
+                procedimentoId: retConsulta.procedimentoId,
+                procedimentoNome: retConsulta.procedimentoNome,
+                inicio: retConsulta.inicio,
+              }
+            : null
+        }
+        onClose={(created) => {
+          setRetOpen(false);
+          setRetConsulta(null);
+          if (created && diaSelecionado) carregarDia(diaSelecionado);
+        }}
+      />
     </div>
   );
 }

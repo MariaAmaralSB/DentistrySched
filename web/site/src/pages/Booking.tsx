@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { format, parseISO } from "date-fns";
-import { PublicAPI, setTenantId } from "../api/client";
+import { PublicAPI, SemanaDiaResumo, setTenantId } from "../api/client";
 import type { Dentista, Procedimento, SlotDto, CriarConsultaDto } from "../api/types";
 import { useNavigate } from "react-router-dom";
 
@@ -86,6 +86,15 @@ export default function Booking() {
     () => (data ? format(parseISO(data), "dd/MM/yyyy") : ""),
     [data]
   );
+
+  const [semana, setSemana] = useState<SemanaDiaResumo[]>([]);
+    useEffect(() => {
+      if (!dentistaId || !procedimentoId) { setSemana([]); return; }
+      const base = data || new Date().toISOString().slice(0,10); 
+      PublicAPI.agendaSemana(dentistaId, procedimentoId, base)
+        .then(setSemana)
+        .catch(() => setSemana([]));
+    }, [dentistaId, procedimentoId, data]);
 
   return (
     <div className="min-h-screen flex items-start justify-center pt-14">
@@ -175,7 +184,40 @@ export default function Booking() {
               onChange={e => setDescricao(e.target.value)}
             />
           </div>
-
+          {dentistaId && procedimentoId && semana.length > 0 && (
+              <div className="space-y-2">
+                <div className="text-sm font-medium">Visão semanal</div>
+                <div className="grid grid-cols-7 gap-2">
+                  {semana.map((d) => {
+                    const dt = new Date(d.dia + "T00:00:00");
+                    const label = dt.toLocaleDateString(undefined, { weekday: "short", day: "2-digit" });
+                    const hasLivre = d.livres > 0;
+                    return (
+                      <button
+                        key={d.dia}
+                        onClick={() => setData(d.dia)}
+                        className={`rounded-xl border px-2 py-2 text-left hover:shadow-sm transition
+                          ${hasLivre ? "border-emerald-400/60 bg-emerald-50" : "border-gray-200 bg-gray-50"}
+                        `}
+                        title={hasLivre && d.primeiroLivre ? `Primeiro livre: ${d.primeiroLivre}` : "Sem horários"}
+                      >
+                        <div className="text-xs text-gray-600">{label}</div>
+                        <div className="mt-1 text-sm">
+                          {hasLivre ? (
+                            <>
+                              <div className="font-semibold">{d.livres} livres</div>
+                              {d.primeiroLivre && <div className="text-xs text-gray-600">1º: {d.primeiroLivre}</div>}
+                            </>
+                          ) : (
+                            <div className="text-gray-500">Lotado</div>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           <div className="space-y-2">
             <div className="font-medium">
               Horários {dataLabel && `(${dataLabel})`}

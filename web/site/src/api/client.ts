@@ -47,6 +47,13 @@ export type CriarConsultaDto = {
   sintomas: string[];
 };
 
+export type SemanaDiaResumo = {
+  dia: string;         
+  livres: number;
+  ocupados: number;
+  primeiroLivre?: string | null;
+};
+
 export const PublicAPI = {
   dentistas: async (): Promise<Dentista[]> => {
     const r = await api.get("/admin/dentistas");
@@ -94,4 +101,16 @@ export const PublicAPI = {
     const r = await api.post("/public/consultas", dto);
     return r.data as string;
   },
+
+  agendaSemana: async (dentistaId: string, procedimentoId: string, inicioISO: string): Promise<SemanaDiaResumo[]> => {
+    const r = await api.get("/public/agenda/semana", { params: { dentistaId, procedimentoId, inicio: inicioISO }});
+    const fix = (s: any) => (typeof s === "string" && s.length >= 10 ? s.slice(0,10) : s);
+    return (r.data ?? []).map((x: any) => ({
+      dia: fix(x.dia),
+      livres: x.livres ?? 0,
+      ocupados: x.ocupados ?? 0,
+      primeiroLivre: x.primeiroLivre ?? null
+    }));
+  },
+  
 };
