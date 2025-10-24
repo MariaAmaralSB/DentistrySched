@@ -117,14 +117,14 @@ export type Procedimento = {
 export type SlotDto = { horaISO: string };
 
 export type RetornoSugestaoDto = {
-  dia: string;
-  horarios: string[];
+  dia: string;                
+  horarios: string[];         
 };
 
 export type CriarRetornoDto = {
-  dentistaId?: string;
-  procedimentoId?: string;
-  inicio: string;
+  dentistaId?: string;        
+  procedimentoId?: string;    
+  inicio: string;             
 };
 
 /** Auth */

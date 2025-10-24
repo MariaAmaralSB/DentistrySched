@@ -2,6 +2,7 @@
 using DentistrySched.API.Services;
 using DentistrySched.Application.DTO;
 using DentistrySched.Application.Services.Security;
+using DentistrySched.Domain.Entities;
 using DentistrySched.Infrastructure;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -52,6 +53,9 @@ public class AuthController : ControllerBase
         );
     }
 
+    // ============================================================
+    // CRIAR USUÁRIO (ADMIN)
+    // ============================================================
     [HttpPost("register")]
     [Authorize(Roles = "Admin")]
     public async Task<ActionResult<RegisterUserResponse>> Register([FromBody] RegisterUserDto dto, CancellationToken ct)
@@ -98,9 +102,9 @@ public class AuthController : ControllerBase
 
         _db.UserRoles.Add(new DentistrySched.Domain.Entities.UserRole
         {
+            TenantId = tid,
             UserId = user.Id,
             RoleId = role.Id,
-            TenantId = tid
         });
 
         await _db.SaveChangesAsync(ct);
@@ -109,6 +113,17 @@ public class AuthController : ControllerBase
         return Ok(new RegisterUserResponse(user.Id, user.Email, roles, user.TenantId, user.DentistaId));
     }
 
+    public record RegisterRequest(
+        string Name,
+        string Email,
+        string Password,
+        string Role,
+        Guid? DentistaId
+    );
+
+    // ============================================================
+    // PERFIL ATUAL
+    // ============================================================
     [HttpGet("me")]
     [Authorize]
     public ActionResult<object> Me()
