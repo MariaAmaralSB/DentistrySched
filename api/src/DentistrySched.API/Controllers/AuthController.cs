@@ -25,9 +25,6 @@ public class AuthController : ControllerBase
         _hasher = hasher;
     }
 
-    // ============================================================
-    // LOGIN
-    // ============================================================
     [HttpPost("login")]
     [AllowAnonymous]
     public async Task<ActionResult<LoginResponse>> Login([FromBody] LoginRequest req, CancellationToken ct)
@@ -37,14 +34,11 @@ public class AuthController : ControllerBase
             return BadRequest("Tenant inválido.");
 
         var user = await _db.Users
-            .Include(u => u.Roles)
-                .ThenInclude(ur => ur.Role)
+            .Include(u => u.Roles).ThenInclude(ur => ur.Role)
             .FirstOrDefaultAsync(u => u.TenantId == tid && u.Email == req.Email, ct);
 
-        if (user is null) return Unauthorized();
-
-        var ok = _hasher.Verify(user.PasswordHash, req.Password);
-        if (!ok) return Unauthorized();
+        if (user is null || !_hasher.Verify(user.PasswordHash, req.Password))
+            return Unauthorized();
 
         var roles = user.Roles.Select(r => r.Role.Name).ToArray();
         var token = _jwt.Create(user, roles);
@@ -64,50 +58,59 @@ public class AuthController : ControllerBase
     // ============================================================
     [HttpPost("register")]
     [Authorize(Roles = "Admin")]
-    public async Task<IActionResult> Register([FromBody] RegisterRequest req, CancellationToken ct)
+    public async Task<ActionResult<RegisterUserResponse>> Register([FromBody] RegisterUserDto dto, CancellationToken ct)
     {
-        var tenantId = HttpContext.Request.Headers["X-Tenant-Id"].FirstOrDefault();
-        if (tenantId is null || !Guid.TryParse(tenantId, out var tid))
+        if (string.IsNullOrWhiteSpace(dto.Email) || string.IsNullOrWhiteSpace(dto.Password))
+            return BadRequest("E-mail e senha são obrigatórios.");
+
+        var tenantIdHeader = HttpContext.Request.Headers["X-Tenant-Id"].FirstOrDefault();
+        if (tenantIdHeader is null || !Guid.TryParse(tenantIdHeader, out var tid))
             return BadRequest("Tenant inválido.");
 
-        if (await _db.Users.AnyAsync(u => u.Email == req.Email && u.TenantId == tid, ct))
-            return Conflict("E-mail já cadastrado.");
+        var exists = await _db.Users.AnyAsync(u => u.TenantId == tid && u.Email == dto.Email, ct);
+        if (exists) return Conflict("E-mail já cadastrado neste tenant.");
 
-        var user = new User
+        Guid? vinculoDentista = null;
+        if (dto.DentistaId is Guid dId && dId != Guid.Empty)
         {
-            TenantId = tid,
-            Name = req.Name,
-            Email = req.Email,
-            PasswordHash = _hasher.Hash(req.Password),
+            var ok = await _db.Dentistas.AnyAsync(d => d.Id == dId && d.TenantId == tid, ct);
+            if (!ok) return BadRequest("DentistaId inválido para este tenant.");
+            vinculoDentista = dId;
+        }
+
+        var roleName = string.IsNullOrWhiteSpace(dto.Role) ? "Dentista" : dto.Role.Trim();
+        var role = await _db.Roles.FirstOrDefaultAsync(r => r.TenantId == tid && r.Name == roleName, ct);
+        if (role is null)
+        {
+            role = new DentistrySched.Domain.Entities.Role { Name = roleName, TenantId = tid };
+            _db.Roles.Add(role);
+            await _db.SaveChangesAsync(ct);
+        }
+
+        var user = new DentistrySched.Domain.Entities.User
+        {
+            Email = dto.Email.Trim(),
+            Name = string.IsNullOrWhiteSpace(dto.Name) ? dto.Email.Trim() : dto.Name!.Trim(),
             IsActive = true,
-            DentistaId = req.DentistaId
+            TenantId = tid,
+            DentistaId = vinculoDentista,
+            PasswordHash = _hasher.Hash(dto.Password)
         };
 
         _db.Users.Add(user);
         await _db.SaveChangesAsync(ct);
 
-        var role = await _db.Roles.FirstOrDefaultAsync(r =>
-            r.TenantId == tid && r.Name == req.Role, ct);
-
-        if (role == null)
-            return BadRequest($"Papel '{req.Role}' não encontrado para o tenant.");
-
-        _db.UserRoles.Add(new UserRole
+        _db.UserRoles.Add(new DentistrySched.Domain.Entities.UserRole
         {
             TenantId = tid,
             UserId = user.Id,
-            RoleId = role.Id
+            RoleId = role.Id,
         });
 
         await _db.SaveChangesAsync(ct);
 
-        return CreatedAtAction(nameof(Me), new { id = user.Id }, new
-        {
-            user.Id,
-            user.Email,
-            user.Name,
-            Role = req.Role
-        });
+        var roles = new[] { role.Name };
+        return Ok(new RegisterUserResponse(user.Id, user.Email, roles, user.TenantId, user.DentistaId));
     }
 
     public record RegisterRequest(
