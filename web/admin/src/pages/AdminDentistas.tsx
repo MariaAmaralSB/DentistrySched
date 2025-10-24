@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { AdminAPI } from "../api/client";
+import VincularUsuarioModal from "../components/VincularUsuarioModal";
 
 type Dentista = { id: string; nome: string; cro?: string };
 type Procedimento = { id: string; nome: string; duracaoMin: number; bufferMin: number };
@@ -10,31 +11,29 @@ export default function AdminDentistas() {
   const [itens, setItens] = useState<Dentista[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // criar
   const [nome, setNome] = useState("");
   const [cro, setCRO] = useState("");
 
-  // edição inline
   const [editId, setEditId] = useState<string | null>(null);
   const [editNome, setEditNome] = useState("");
   const [editCRO, setEditCRO] = useState("");
 
-  // modal procedimentos
   const [showProcModal, setShowProcModal] = useState(false);
   const [aba, setAba] = useState<Aba>("vincular");
   const [dentistaProc, setDentistaProc] = useState<Dentista | null>(null);
   const [savingProc, setSavingProc] = useState(false);
-
-  // vincular existentes
   const [procAll, setProcAll] = useState<Procedimento[]>([]);
   const [procSelIds, setProcSelIds] = useState<string[]>([]);
   const [q, setQ] = useState("");
-
-  // criar novo procedimento
   const [novoNome, setNovoNome] = useState("");
   const [novoDur, setNovoDur] = useState<number | "">("");
   const [novoBuf, setNovoBuf] = useState<number | "">("");
   const [criando, setCriando] = useState(false);
+
+  // --- Modal de Vincular Usuário ---
+  const [showVincularUser, setShowVincularUser] = useState(false);
+  const [selDentistaId, setSelDentistaId] = useState("");
+  const [selDentistaNome, setSelDentistaNome] = useState("");
 
   const carregar = async () => {
     setLoading(true);
@@ -77,7 +76,7 @@ export default function AdminDentistas() {
     }
   };
 
-  /* ---------------- Modal de Procedimentos --------------- */
+  // --- Modal de Procedimentos ---
   const abrirModalProcedimentos = async (d: Dentista) => {
     setDentistaProc(d);
     setAba("vincular");
@@ -136,11 +135,10 @@ export default function AdminDentistas() {
     }
     try {
       setCriando(true);
+      // precisa existir AdminAPI.criarProcedimento no client
       const p = await AdminAPI.criarProcedimento({ nome: n, duracaoMin: d, bufferMin: b });
-      // já adiciona na lista e marca selecionado
       setProcAll(prev => [p, ...prev]);
       setProcSelIds(prev => [p.id, ...prev]);
-      // reseta form e volta pra aba vincular
       setNovoNome(""); setNovoDur(""); setNovoBuf("");
       setAba("vincular");
     } catch (err: any) {
@@ -148,6 +146,13 @@ export default function AdminDentistas() {
     } finally {
       setCriando(false);
     }
+  };
+
+  // --- Abrir modal de vínculo de usuário ---
+  const abrirVincularUsuario = (d: Dentista) => {
+    setSelDentistaId(d.id);
+    setSelDentistaNome(d.nome);
+    setShowVincularUser(true);
   };
 
   return (
@@ -180,7 +185,7 @@ export default function AdminDentistas() {
                 <tr className="text-left border-b">
                   <th className="py-2">Nome</th>
                   <th className="py-2">CRO</th>
-                  <th className="py-2 w-[280px]">Ações</th>
+                  <th className="py-2 w-[380px]">Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -207,6 +212,9 @@ export default function AdminDentistas() {
                           <>
                             <button onClick={() => abrirModalProcedimentos(d)} className="px-3 py-1 rounded border">
                               Procedimentos
+                            </button>
+                            <button onClick={() => abrirVincularUsuario(d)} className="px-3 py-1 rounded border">
+                              Vincular usuário
                             </button>
                             <button onClick={() => iniciarEdicao(d)} className="px-3 py-1 rounded border">Editar</button>
                             <button onClick={() => remover(d.id)} className="px-3 py-1 rounded bg-red-600 text-white">Remover</button>
@@ -340,6 +348,14 @@ export default function AdminDentistas() {
           </div>
         </div>
       )}
+
+      {/* Modal Vincular Usuário */}
+      <VincularUsuarioModal
+        open={showVincularUser}
+        onClose={() => setShowVincularUser(false)}
+        dentistaId={selDentistaId}
+        dentistaNome={selDentistaNome}
+      />
     </div>
   );
 }

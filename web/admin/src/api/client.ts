@@ -145,6 +145,21 @@ export type MeResponse = {
   dentistaId?: string | null;
   roles: string[];
 };
+export type RegisterUserRequest = {
+  email: string;
+  password: string;
+  name?: string | null;
+  dentistaId?: string | null; 
+  role?: string;              
+};
+
+export type RegisterUserResponse = {
+  id: string;
+  email: string;
+  roles: string[];
+  tenantId: string;
+  dentistaId?: string | null;
+};
 
 /* ------------------ APIs ------------------ */
 export const AuthAPI = {
@@ -156,9 +171,13 @@ export const AuthAPI = {
     const r = await api.get<MeResponse>("/auth/me");
     return r.data;
   },
+  register: async (req: RegisterUserRequest) => {
+    const r = await api.post<RegisterUserResponse>("/auth/register", req);
+    return r.data;
+  },
   logout: async () => {
     setToken(null);
-  }
+  },
 };
 
 export const PublicAPI = {

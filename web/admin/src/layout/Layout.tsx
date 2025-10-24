@@ -1,5 +1,7 @@
-import { NavLink, Outlet, Link } from "react-router-dom";
+import { NavLink, Outlet, Link, useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import TenantSwitcher from "../components/TenantSwitcher";
+import { AuthAPI } from "../api/client";
 
 const API_URL =
   (typeof import.meta !== "undefined" &&
@@ -12,6 +14,18 @@ const navItem =
 const active = "bg-gray-100 text-gray-900";
 
 export default function Layout() {
+  const navigate = useNavigate();
+  const qc = useQueryClient();
+
+  const onLogout = async () => {
+    try {
+      await AuthAPI.logout(); // limpa token do localStorage
+      qc.clear();             // limpa cache do react-query (opcional)
+    } finally {
+      navigate("/admin/login", { replace: true });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="h-14 border-b bg-white">
@@ -19,7 +33,9 @@ export default function Layout() {
           <div className="font-semibold">DentistrySched • Admin</div>
 
           <nav className="hidden sm:flex items-center gap-4 text-sm text-gray-600">
-            <Link className="hover:text-gray-900" to="/site">Site</Link>
+            <Link className="hover:text-gray-900" to="/site">
+              Site
+            </Link>
             <a
               className="hover:text-gray-900"
               target="_blank"
@@ -30,6 +46,14 @@ export default function Layout() {
             </a>
 
             <TenantSwitcher />
+
+            <button
+              onClick={onLogout}
+              className="px-3 py-1.5 rounded-lg border hover:bg-gray-100"
+              title="Sair"
+            >
+              Sair
+            </button>
           </nav>
         </div>
       </header>
@@ -38,9 +62,25 @@ export default function Layout() {
         <aside className="bg-white rounded-2xl shadow p-3 h-max">
           <div className="text-xs uppercase text-gray-500 px-2 mb-2">Menu</div>
           <div className="flex flex-col gap-1">
-            <NavLink to="/admin" end className={({ isActive }) => `${navItem} ${isActive ? active : ""}`}>🏠 Dashboard</NavLink>
-            <NavLink to="/admin/dentistas" className={({ isActive }) => `${navItem} ${isActive ? active : ""}`}>🧑‍⚕️ Dentistas</NavLink>
-            <NavLink to="/admin/agenda" className={({ isActive }) => `${navItem} ${isActive ? active : ""}`}>📅 Controle de Agenda</NavLink>
+            <NavLink
+              to="/admin"
+              end
+              className={({ isActive }) => `${navItem} ${isActive ? active : ""}`}
+            >
+              🏠 Dashboard
+            </NavLink>
+            <NavLink
+              to="/admin/dentistas"
+              className={({ isActive }) => `${navItem} ${isActive ? active : ""}`}
+            >
+              🧑‍⚕️ Dentistas
+            </NavLink>
+            <NavLink
+              to="/admin/agenda"
+              className={({ isActive }) => `${navItem} ${isActive ? active : ""}`}
+            >
+              📅 Controle de Agenda
+            </NavLink>
           </div>
         </aside>
 
