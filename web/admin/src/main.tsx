@@ -1,4 +1,4 @@
-// src/main.tsx (ou src/index.tsx)
+// src/main.tsx
 import React from "react";
 import ReactDOM from "react-dom/client";
 import {
@@ -16,22 +16,35 @@ import AdminAgenda from "./pages/AdminAgenda";
 import { ThemeProvider } from "./theme";
 import TenantGate from "./components/TenantGate";
 
+// >>> NOVOS imports do Auth
+import { AuthProvider } from "./auth/useAuth";
+import RequireAuth from "./auth/RequireAuth";
+import Login from "./pages/Login"; // sua tela de login
+
 const router = createBrowserRouter([
+  // login público
+  { path: "/admin/login", element: <Login /> },
+
   // redireciona raiz para /admin
   { path: "/", element: <Navigate to="/admin" replace /> },
 
-  // bloco admin protegido por TenantGate
+  // bloco admin protegido por auth (e ainda passando pelo TenantGate)
   {
     path: "/admin",
-    element: (
-      <TenantGate>
-        <Layout />
-      </TenantGate>
-    ),
+    element: <RequireAuth roles={["Admin", "Dentista", "Recepcao"]} />, // guard
     children: [
-      { index: true, element: <Dashboard /> },            
-      { path: "dentistas", element: <AdminDentistas /> }, 
-      { path: "agenda", element: <AdminAgenda /> },       
+      {
+        element: (
+          <TenantGate>
+            <Layout />
+          </TenantGate>
+        ),
+        children: [
+          { index: true, element: <Dashboard /> },
+          { path: "dentistas", element: <AdminDentistas /> },
+          { path: "agenda", element: <AdminAgenda /> },
+        ],
+      },
     ],
   },
 
@@ -54,7 +67,9 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <ThemeProvider>
       <QueryClientProvider client={queryClient}>
-        <RouterProvider router={router} />
+        <AuthProvider>
+          <RouterProvider router={router} />
+        </AuthProvider>
       </QueryClientProvider>
     </ThemeProvider>
   </React.StrictMode>

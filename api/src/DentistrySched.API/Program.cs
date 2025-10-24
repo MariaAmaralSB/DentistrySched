@@ -1,10 +1,14 @@
+using DentistrySched.API;
 using DentistrySched.API.Services;
 using DentistrySched.Application.Interface;
 using DentistrySched.Application.Services;
+using DentistrySched.Application.Services.Security;
 using DentistrySched.Infrastructure;
-using DentistrySched.Infrastructure.Seed;
 using DentistrySched.Infrastructure.Tenancy;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,7 +23,7 @@ builder.Services.AddScoped<ITenantProvider>(sp =>
 {
     var accessor = sp.GetRequiredService<IHttpContextAccessor>();
     if (accessor.HttpContext is not null)
-        return new TenantProvider(accessor);   
+        return new TenantProvider(accessor);  
     return new DesignTimeTenantProvider();     
 });
 
@@ -32,8 +36,10 @@ builder.Services.AddDbContext<AppDbContext>(opt =>
     AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
     opt.UseNpgsql(cs);
+#if DEBUG
     opt.EnableDetailedErrors();
     opt.EnableSensitiveDataLogging();
+#endif
 });
 
 // --- CORS ---
@@ -45,15 +51,45 @@ builder.Services.AddCors(opt =>
 // --- App services ---
 builder.Services.AddScoped<ISlotService, SlotService>();
 builder.Services.AddHostedService<ConsultaReminderService>();
+builder.Services.AddSingleton<PasswordHasher>();
+builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("Jwt"));
+builder.Services.AddSingleton<JwtTokenService>();
+
+// --- Autenticação JWT Bearer ---
+var jwtSection = builder.Configuration.GetSection("Jwt");
+var keyStr = jwtSection["Key"];
+if (string.IsNullOrWhiteSpace(keyStr))
+    throw new InvalidOperationException("Jwt:Key ausente no appsettings.");
+
+var key = Encoding.UTF8.GetBytes(keyStr!);
+
+builder.Services
+    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(opt =>
+    {
+        opt.TokenValidationParameters = new()
+        {
+            ValidIssuer = jwtSection["Issuer"],
+            ValidAudience = jwtSection["Audience"],
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(key),
+            ValidateLifetime = true
+        };
+    });
+
+builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
 // --- Swagger / CORS ---
 app.UseSwagger();
 app.UseSwaggerUI();
+
 app.UseCors();
 
-// --------- Middleware ---------
+// --------- Middleware de Tenant ---------
 app.Use(async (ctx, next) =>
 {
     var tenantProvider = ctx.RequestServices.GetRequiredService<ITenantProvider>();
@@ -73,6 +109,10 @@ app.Use(async (ctx, next) =>
     await next();
 });
 
+// --- Auth (antes dos endpoints) ---
+app.UseAuthentication();
+app.UseAuthorization();
+
 // --------- Seed por tenant  ----------
 using (var scope = app.Services.CreateScope())
 {
@@ -90,7 +130,7 @@ using (var scope = app.Services.CreateScope())
     if (Guid.TryParse(cfg["Tenants:Default"], out var defTid)) seeds.Add(defTid);
     var extras = cfg.GetSection("Tenants:Extras").Get<string[]>() ?? Array.Empty<string>();
     foreach (var s in extras) if (Guid.TryParse(s, out var g)) seeds.Add(g);
-    if (seeds.Count == 0) seeds.Add(Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")); 
+    if (seeds.Count == 0) seeds.Add(Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"));
 
     foreach (var tid in seeds.Distinct())
     {
@@ -98,7 +138,8 @@ using (var scope = app.Services.CreateScope())
         using var db = new AppDbContext(optBuilder.Options, designTenant);
 
         await db.Database.EnsureCreatedAsync();
-        await TenantSeeder.SeedTenantAsync(db, tid);
+
+        await SeedDev.RunAsync(db);
     }
 }
 

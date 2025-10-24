@@ -22,6 +22,10 @@ public class AppDbContext : DbContext
     public DbSet<AgendaData> AgendaDatas => Set<AgendaData>();
     public DbSet<DentistaProcedimento> DentistasProcedimentos => Set<DentistaProcedimento>();
 
+    public DbSet<User> Users => Set<User>();
+    public DbSet<Role> Roles => Set<Role>();
+    public DbSet<UserRole> UserRoles => Set<UserRole>();
+
     protected override void OnModelCreating(ModelBuilder mb)
     {
         mb.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
@@ -34,6 +38,34 @@ public class AppDbContext : DbContext
         mb.Entity<AgendaExcecao>().HasQueryFilter(e => e.TenantId == CurrentTenantId);
         mb.Entity<AgendaData>().HasQueryFilter(e => e.TenantId == CurrentTenantId);
         mb.Entity<DentistaProcedimento>().HasQueryFilter(e => e.TenantId == CurrentTenantId);
+
+        mb.Entity<User>().HasQueryFilter(e => e.TenantId == CurrentTenantId);
+        mb.Entity<Role>().HasQueryFilter(e => e.TenantId == CurrentTenantId);
+        mb.Entity<UserRole>().HasQueryFilter(e => e.TenantId == CurrentTenantId);
+
+        mb.Entity<User>()
+            .HasIndex(u => new { u.Email, u.TenantId })
+            .IsUnique();
+
+        mb.Entity<Role>()
+            .HasIndex(r => new { r.Name, r.TenantId })
+            .IsUnique();
+
+        mb.Entity<User>()
+            .HasMany(u => u.Roles)
+            .WithOne(ur => ur.User)
+            .HasForeignKey(ur => ur.UserId);
+
+        mb.Entity<Role>()
+            .HasMany(r => r.Users)
+            .WithOne(ur => ur.Role)
+            .HasForeignKey(ur => ur.RoleId);
+
+        mb.Entity<User>()
+            .HasOne(u => u.Dentista)
+            .WithMany() 
+            .HasForeignKey(u => u.DentistaId)
+            .IsRequired(false);
     }
 
     public override Task<int> SaveChangesAsync(CancellationToken ct = default)
