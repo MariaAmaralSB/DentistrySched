@@ -1,4 +1,3 @@
-// src/main.tsx
 import React from "react";
 import ReactDOM from "react-dom/client";
 import {
@@ -16,22 +15,18 @@ import AdminAgenda from "./pages/AdminAgenda";
 import { ThemeProvider } from "./theme";
 import TenantGate from "./components/TenantGate";
 
-// >>> NOVOS imports do Auth
 import { AuthProvider } from "./auth/useAuth";
 import RequireAuth from "./auth/RequireAuth";
-import Login from "./pages/Login"; // sua tela de login
+import Login from "./pages/Login"; 
 
 const router = createBrowserRouter([
-  // login público
   { path: "/admin/login", element: <Login /> },
 
-  // redireciona raiz para /admin
   { path: "/", element: <Navigate to="/admin" replace /> },
 
-  // bloco admin protegido por auth (e ainda passando pelo TenantGate)
   {
     path: "/admin",
-    element: <RequireAuth roles={["Admin", "Dentista", "Recepcao"]} />, // guard
+    element: <RequireAuth roles={["Admin", "Dentista", "Recepcao"]} />, 
     children: [
       {
         element: (
