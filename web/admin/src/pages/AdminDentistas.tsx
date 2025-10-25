@@ -149,7 +149,6 @@ export default function AdminDentistas() {
   const [nome, setNome] = useState("");
   const [cro, setCRO] = useState("");
 
-  // edição inline
   const [editId, setEditId] = useState<string | null>(null);
   const [editNome, setEditNome] = useState("");
   const [editCRO, setEditCRO] = useState("");
