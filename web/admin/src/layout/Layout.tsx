@@ -1,7 +1,16 @@
+// src/layout/Layout.tsx
 import { NavLink, Outlet, Link, useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import TenantSwitcher from "../components/TenantSwitcher";
 import { AuthAPI } from "../api/client";
+import Logo from "../components/Logo";
+import {
+  IconBadge,
+  DashboardIcon,
+  DentistsIcon,
+  CalendarIcon,
+  ReportsIcon,
+} from "../components/icons";
 
 const API_URL =
   (typeof import.meta !== "undefined" &&
@@ -28,21 +37,12 @@ export default function Layout() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-cyan-50">
-      {/* Top bar fixa */}
+      {/* Header */}
       <header className="sticky top-0 z-40 bg-white/80 backdrop-blur border-b border-slate-200">
         <div className="max-w-6xl mx-auto h-14 px-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-cyan-500 grid place-content-center text-white text-sm shadow">
-              🦷
-            </div>
-            <div className="font-semibold">DentistrySched • Admin</div>
-          </div>
+          <Logo full={false} />
 
           <nav className="hidden sm:flex items-center gap-4 text-sm text-gray-600">
-            <Link className="hover:text-gray-900" to="/site">Site</Link>
-            <a className="hover:text-gray-900" target="_blank" rel="noreferrer" href={`${API_URL}/swagger`}>
-              Swagger
-            </a>
             <TenantSwitcher />
             <button
               onClick={onLogout}
@@ -53,28 +53,53 @@ export default function Layout() {
             </button>
           </nav>
         </div>
-
-        {/* Toolbar imediatamente abaixo do header (sem “vazio” acima) */}
-        
       </header>
 
-      {/* GRID: Sidebar + Conteúdo */}
+      {/* GRID */}
       <div className="max-w-6xl mx-auto px-4 py-6 grid grid-cols-1 md:grid-cols-[240px_1fr] gap-6">
         {/* Sidebar */}
         <aside className="bg-white/90 backdrop-blur rounded-2xl shadow p-3 h-max border border-slate-200">
           <div className="text-xs uppercase text-gray-500 px-2 mb-2">Menu</div>
           <div className="flex flex-col gap-1">
-            <NavLink to="/admin" end className={({ isActive }) => `${navItem} ${isActive ? active : ""}`}>
-              <span className="text-lg">🏠</span> Dashboard
+            <NavLink
+              to="/admin"
+              end
+              className={({ isActive }) => `${navItem} ${isActive ? active : ""}`}
+            >
+              <IconBadge size={34} title="Dashboard">
+                <DashboardIcon size={18} />
+              </IconBadge>
+              Dashboard
             </NavLink>
-            <NavLink to="/admin/dentistas" className={({ isActive }) => `${navItem} ${isActive ? active : ""}`}>
-              <span className="text-lg">👩‍⚕️</span> Dentistas
+
+            <NavLink
+              to="/admin/dentistas"
+              className={({ isActive }) => `${navItem} ${isActive ? active : ""}`}
+            >
+              <IconBadge size={34} title="Dentistas">
+                <DentistsIcon size={18} />
+              </IconBadge>
+              Dentistas
             </NavLink>
-            <NavLink to="/admin/agenda" className={({ isActive }) => `${navItem} ${isActive ? active : ""}`}>
-              <span className="text-lg">📅</span> Controle de Agenda
+
+            <NavLink
+              to="/admin/agenda"
+              className={({ isActive }) => `${navItem} ${isActive ? active : ""}`}
+            >
+              <IconBadge size={34} title="Controle de Agenda">
+                <CalendarIcon size={18} />
+              </IconBadge>
+              Controle de Agenda
             </NavLink>
-            <NavLink to="/admin/relatorios" className={({ isActive }) => `${navItem} ${isActive ? active : ""}`}>
-              <span className="text-lg">📊</span> Relatórios
+
+            <NavLink
+              to="/admin/relatorios"
+              className={({ isActive }) => `${navItem} ${isActive ? active : ""}`}
+            >
+              <IconBadge size={34} title="Relatórios">
+                <ReportsIcon size={18} />
+              </IconBadge>
+              Relatórios
             </NavLink>
 
             <div className="mt-3 p-3 rounded-xl bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-100">
@@ -91,7 +116,7 @@ export default function Layout() {
           </div>
         </aside>
 
-        {/* Conteúdo colado no topo (sem mt-*) */}
+        {/* Conteúdo */}
         <main className="min-h-[60vh]">
           <Outlet />
         </main>
